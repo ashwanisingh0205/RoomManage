@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import bg from '../assets/bg.jpg';
+import { 
+  canApproveRequests, 
+  canRequestRooms, 
+  getCurrentUserRole,
+  ROLES 
+} from '../lib/roleUtils';
 
 export default function BookingRequests() {
   const [requests, setRequests] = useState({
@@ -42,7 +48,7 @@ export default function BookingRequests() {
           // Ensure it's an array
           requestsArray = Array.isArray(requestsArray) ? requestsArray : [requestsArray];
           
-          // For each request, fetch the booking details
+          // For each request, fetch the booking details and room information
           const requestsWithDetails = await Promise.all(
             requestsArray.map(async (request) => {
               try {
@@ -50,15 +56,29 @@ export default function BookingRequests() {
                 const bookingResponse = await axios.get(`/bookings/${request.booking_id}`);
                 console.log(`Booking details for ${request.booking_id}:`, bookingResponse.data);
                 
+                let roomDetails = null;
+                if (bookingResponse.data.room_id) {
+                  try {
+                    // Fetch room details to get room type
+                    const roomResponse = await axios.get(`/rooms/${bookingResponse.data.room_id}`);
+                    console.log(`Room details for ${bookingResponse.data.room_id}:`, roomResponse.data);
+                    roomDetails = roomResponse.data;
+                  } catch (roomError) {
+                    console.error(`Error fetching room ${bookingResponse.data.room_id}:`, roomError);
+                  }
+                }
+                
                 return {
                   ...request,
-                  booking: bookingResponse.data
+                  booking: bookingResponse.data,
+                  room: roomDetails
                 };
               } catch (bookingError) {
                 console.error(`Error fetching booking ${request.booking_id}:`, bookingError);
                 return {
                   ...request,
-                  booking: null
+                  booking: null,
+                  room: null
                 };
               }
             })
@@ -157,6 +177,27 @@ export default function BookingRequests() {
     }
   };
 
+  // Filter requests based on user role and room type
+  const filterRequestsByRole = (requests) => {
+    if (userRole === ROLES.CHAIRMAN) {
+      // Chairman can see all requests
+      return requests;
+    } else if (userRole === ROLES.PMC) {
+      // PMC can only see non-premium room requests
+      return requests.filter(request => {
+        if (request.room && request.room.type) {
+          console.log(`PMC filtering: Room ${request.room.id} is ${request.room.type} type`);
+          return request.room.type !== 'premium';
+        }
+        console.log(`PMC filtering: No room info for request ${request.id}, showing request`);
+        return true; // If no room info, show the request
+      });
+    } else {
+      // Other roles (Mess Secretary, Mess Hawaldar) can only see their own requests
+      return requests;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#020B17] via-[#0a1a2e] to-[#1a2e4a] flex items-center justify-center">
@@ -167,6 +208,10 @@ export default function BookingRequests() {
       </div>
     );
   }
+
+  const userRole = getCurrentUserRole();
+  const canApprove = canApproveRequests();
+  const canRequest = canRequestRooms();
 
   return (
     <>
@@ -186,19 +231,29 @@ export default function BookingRequests() {
 
         {/* Header Section */}
         <div className="relative z-20 text-center mb-10">
-          <h1 className="text-3xl sm:text-5xl font-bold text-white drop-shadow-md">Booking Requests</h1>
+          <h1 className="text-3xl sm:text-5xl font-bold text-white drop-shadow-md">
+            {canApprove ? 'Booking Requests Management' : 'My Booking Requests'}
+          </h1>
           <p className="mt-4 text-gray-300 text-sm sm:text-lg max-w-2xl mx-auto">
-            Manage and review booking requests from users.
+            {canApprove 
+              ? 'Review and manage booking requests from users.' 
+              : 'View the status of your booking requests.'
+            }
           </p>
+          {userRole && (
+            <div className="mt-2 text-blue-300 text-sm">
+              Role: {userRole}
+            </div>
+          )}
         </div>
 
         {/* Tab Navigation */}
         <div className="relative z-20 flex justify-center mb-8">
           <div className="flex space-x-1 bg-gray-800/50 backdrop-blur-md rounded-lg p-1">
             {[
-              { key: 'pending', label: 'Pending', count: requests.pending.length },
-              { key: 'approved', label: 'Approved', count: requests.approved.length },
-              { key: 'rejected', label: 'Rejected', count: requests.rejected.length }
+              { key: 'pending', label: 'Pending', count: filterRequestsByRole(requests.pending).length },
+              { key: 'approved', label: 'Approved', count: filterRequestsByRole(requests.approved).length },
+              { key: 'rejected', label: 'Rejected', count: filterRequestsByRole(requests.rejected).length }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -217,8 +272,8 @@ export default function BookingRequests() {
 
         {/* Content */}
         <div className="relative z-20 max-w-6xl mx-auto">
-          {/* Note Input */}
-          {(approvingRequest || rejectingRequest) && (
+          {/* Note Input - Only for users who can approve */}
+          {(approvingRequest || rejectingRequest) && canApprove && (
             <div className="mb-6 bg-gray-800/50 backdrop-blur-md rounded-lg p-4 border border-gray-700">
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Note (optional):
@@ -246,7 +301,7 @@ export default function BookingRequests() {
                 <p className="text-gray-400">There are no {activeTab} booking requests at the moment.</p>
               </div>
             ) : (
-              requests[activeTab].map((request) => (
+              filterRequestsByRole(requests[activeTab]).map((request) => (
                 <div
                   key={request.id}
                   className="bg-gray-800/50 backdrop-blur-md rounded-lg p-6 border border-gray-700 hover:border-gray-600 transition-colors"
@@ -328,8 +383,8 @@ export default function BookingRequests() {
                        </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    {activeTab === 'pending' && (
+                    {/* Action Buttons - Only for users who can approve */}
+                    {activeTab === 'pending' && canApprove && (
                       <div className="flex flex-col gap-2 ml-4">
                         <button
                           onClick={() => handleApproveRequest(request.id)}
@@ -348,8 +403,8 @@ export default function BookingRequests() {
                       </div>
                     )}
 
-                    {/* Action Buttons for Approved Section */}
-                    {activeTab === 'approved' && (
+                    {/* Action Buttons for Approved Section - Only for users who can approve */}
+                    {activeTab === 'approved' && canApprove && (
                       <div className="flex flex-col gap-2 ml-4">
                         <button
                           onClick={() => handleRejectRequest(request.id)}
@@ -361,8 +416,8 @@ export default function BookingRequests() {
                       </div>
                     )}
 
-                    {/* Action Buttons for Rejected Section */}
-                    {activeTab === 'rejected' && (
+                    {/* Action Buttons for Rejected Section - Only for users who can approve */}
+                    {activeTab === 'rejected' && canApprove && (
                       <div className="flex flex-col gap-2 ml-4">
                         <button
                           onClick={() => handleApproveRequest(request.id)}

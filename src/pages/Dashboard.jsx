@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import axios from '../api/axios';
 import bg from '../assets/bg.jpg';
+import { 
+  canViewBookingRequests, 
+  getCurrentUserRole,
+  canBookRoom,
+  canRequestRooms,
+  canBookOrRequestRoom,
+  canSeeRoomInBooking
+} from '../lib/roleUtils';
 
 export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToRooms, onNavigateToRequests }) {
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -22,6 +30,10 @@ export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToR
 
     const [availableRooms, setAvailableRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
+  const userRole = getCurrentUserRole();
+  const canViewRequests = canViewBookingRequests();
+  const canBook = canBookRoom(); // Check if user can book any rooms
+  const canRequest = canRequestRooms(); // Check if user can request rooms
 
   const fetchAvailableRooms = async () => {
     try {
@@ -76,28 +88,75 @@ export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToR
 
   const handleBookingConfirmation = async () => {
     try {
-      // Prepare the booking data according to API requirements
-      const bookingData = {
-        name: guestInfo.name,
-        ic_number: guestInfo.icNumber,
-        rank: guestInfo.rank,
-        check_in_date: selectedDates.checkIn,
-        check_out_date: selectedDates.checkOut,
-        purpose_of_visit: guestInfo.typeOfHoliday,
-        room_id: selectedRoom.id,
-        no_of_guests: parseInt(guestInfo.numberOfGuests),
-        meal_preference: guestInfo.mealPreference,
-        mobile_number: guestInfo.phone,
-        payment_method: "Cash", // Default value
-        room_charges: 1000 // Default value - you can adjust this as needed
-      };
-
-      console.log('Sending booking data:', bookingData);
-
-      // Make API call to create booking
-      const response = await axios.post(`/bookings/room/${selectedRoom.id}/book`, bookingData);
+      // Check if user can book directly or needs to request
+      const canBookDirectly = canBookRoom(selectedRoom.id, selectedRoom.type);
+      const userRole = getCurrentUserRole();
       
-      console.log('Booking API response:', response.data);
+      if (canBookDirectly) {
+        // Direct booking for users who can book directly
+        const bookingData = {
+          name: guestInfo.name,
+          ic_number: guestInfo.icNumber,
+          rank: guestInfo.rank,
+          check_in_date: selectedDates.checkIn,
+          check_out_date: selectedDates.checkOut,
+          purpose_of_visit: guestInfo.typeOfHoliday,
+          room_id: selectedRoom.id,
+          no_of_guests: parseInt(guestInfo.numberOfGuests),
+          meal_preference: guestInfo.mealPreference,
+          mobile_number: guestInfo.phone,
+          payment_method: "Cash", // Default value
+          room_charges: 1000 // Default value - you can adjust this as needed
+        };
+
+        console.log('Sending booking data:', bookingData);
+
+        // Make API call to create booking
+        const response = await axios.post(`/bookings/room/${selectedRoom.id}/book`, bookingData);
+        
+        console.log('Booking API response:', response.data);
+        
+        // Show success message
+        alert('Booking confirmed successfully!');
+      } else {
+        // First create a booking
+        const bookingData = {
+          name: guestInfo.name,
+          ic_number: guestInfo.icNumber,
+          rank: guestInfo.rank,
+          check_in_date: selectedDates.checkIn,
+          check_out_date: selectedDates.checkOut,
+          purpose_of_visit: guestInfo.typeOfHoliday,
+          room_id: selectedRoom.id,
+          no_of_guests: parseInt(guestInfo.numberOfGuests),
+          meal_preference: guestInfo.mealPreference,
+          mobile_number: guestInfo.phone,
+          payment_method: "Cash", // Default value
+          room_charges: 1000 // Default value - you can adjust this as needed
+        };
+
+        console.log('Sending booking data:', bookingData);
+
+        // Make API call to create booking first
+        const bookingResponse = await axios.post(`/bookings/room/${selectedRoom.id}/book`, bookingData);
+        
+        console.log('Booking API response:', bookingResponse.data);
+        
+        // Now create request using the booking ID
+        const requestData = {
+          booking_id: bookingResponse.data.id // Use the booking ID from the response
+        };
+
+        console.log('Sending request data:', requestData);
+
+        // Make API call to create request
+        const requestResponse = await axios.post(`/requests/`, requestData);
+        
+        console.log('Request API response:', requestResponse.data);
+        
+        // Show success message
+        alert('Booking request submitted successfully! Please wait for approval.');
+      }
       
       // Reset form and close modal
       setShowBookingModal(false);
@@ -106,11 +165,9 @@ export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToR
       setSelectedRoom(null);
       setGuestInfo({ name: '', phone: '', rank: '', icNumber: '', numberOfGuests: '', typeOfHoliday: '', mealPreference: '' });
       
-      // Show success message
-      alert('Booking confirmed successfully!');
     } catch (error) {
-      console.error('Error creating booking:', error);
-      alert('Error creating booking. Please try again.');
+      console.error('Error creating booking/request:', error);
+      alert('Error creating booking/request. Please try again.');
     }
   };
 
@@ -153,15 +210,21 @@ export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToR
           <p className="mt-4 text-gray-300 text-sm sm:text-lg max-w-2xl mx-auto">
             Quickly book rooms and manage your reservations with an intuitive and beautiful interface.
           </p>
+          {userRole && (
+            <div className="mt-4 text-blue-300 text-sm">
+              Role: {userRole}
+            </div>
+          )}
         </div>
 
         {/* Main content cards */}
         <div className="relative z-20 flex flex-col sm:flex-row flex-wrap justify-center gap-10 sm:gap-10 md:gap-16 w-full max-w-5xl">
-          {/* Make a Booking */}
-          <article
-            onClick={() => setShowBookingModal(true)}
-            className="cursor-pointer rounded-xl border border-white/10 bg-white/20 backdrop-blur-md p-6 sm:p-8 shadow-md transition-all hover:shadow-green-500 hover:scale-105 w-full sm:w-80 transform duration-300 ease-in-out brightness-100"
-          >
+          {/* Make a Booking - Show for users who can book or request rooms */}
+          {(canBook || canRequest) && (
+            <article
+              onClick={() => setShowBookingModal(true)}
+              className="cursor-pointer rounded-xl border border-white/10 bg-white/20 backdrop-blur-md p-6 sm:p-8 shadow-md transition-all hover:shadow-green-500 hover:scale-105 w-full sm:w-80 transform duration-300 ease-in-out brightness-100"
+            >
             <div className="inline-block rounded-lg bg-green-600 p-3 text-white shadow-lg">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -182,40 +245,43 @@ export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToR
               Reserve rooms seamlessly for your guests, events, or staff with one click.
             </p>
 
-            <div className="group mt-4 inline-flex items-center gap-1 text-sm font-medium text-green-400">
-              Book now
-              <span aria-hidden="true" className="transition-all group-hover:ms-1">&rarr;</span>
-            </div>
-          </article>
+                          <div className="group mt-4 inline-flex items-center gap-1 text-sm font-medium text-green-400">
+                Book now
+                <span aria-hidden="true" className="transition-all group-hover:ms-1">&rarr;</span>
+              </div>
+            </article>
+          )}
 
-          {/* Check a Request of Booking */}
-          <article
-            onClick={onNavigateToRequests}
-            className="cursor-pointer rounded-xl border border-white/10 bg-white/25 backdrop-blur-md p-6 sm:p-8 shadow-md transition-all hover:shadow-orange-500 hover:scale-105 w-full sm:w-80 transform duration-300 ease-in-out brightness-100"
-          >
-            <div className="inline-block rounded-lg bg-orange-600 p-3 text-white shadow-lg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="size-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
+          {/* Check a Request of Booking - Only for users who can view requests */}
+          {canViewRequests && (
+            <article
+              onClick={onNavigateToRequests}
+              className="cursor-pointer rounded-xl border border-white/10 bg-white/25 backdrop-blur-md p-6 sm:p-8 shadow-md transition-all hover:shadow-orange-500 hover:scale-105 w-full sm:w-80 transform duration-300 ease-in-out brightness-100"
+            >
+              <div className="inline-block rounded-lg bg-orange-600 p-3 text-white shadow-lg">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="size-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
 
-            <h3 className="mt-4 text-xl font-semibold text-white">Check a Request of Booking</h3>
+              <h3 className="mt-4 text-xl font-semibold text-white">Check a Request of Booking</h3>
 
-            <p className="mt-2 text-sm text-gray-200 leading-relaxed">
-              Review and manage pending booking requests, approve or reject them as needed.
-            </p>
+              <p className="mt-2 text-sm text-gray-200 leading-relaxed">
+                Review and manage pending booking requests, approve or reject them as needed.
+              </p>
 
-            <div className="group mt-4 inline-flex items-center gap-1 text-sm font-medium text-orange-300">
-              Manage requests
-              <span aria-hidden="true" className="transition-all group-hover:ms-1">&rarr;</span>
-            </div>
-          </article>
+              <div className="group mt-4 inline-flex items-center gap-1 text-sm font-medium text-orange-300">
+                Manage requests
+                <span aria-hidden="true" className="transition-all group-hover:ms-1">&rarr;</span>
+              </div>
+            </article>
+          )}
 
           {/* Check a Booking */}
           <article
@@ -247,8 +313,8 @@ export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToR
           </article>
         </div>
 
-        {/* Booking Modal */}
-        {showBookingModal && (
+        {/* Booking Modal - Show for users who can book or request rooms */}
+        {showBookingModal && (canBook || canRequest) && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               {/* Modal Header */}
@@ -368,7 +434,9 @@ export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToR
                       <div>
                         {console.log('Rendering rooms:', availableRooms)}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {availableRooms.map((room) => (
+                          {availableRooms
+                            .filter(room => canSeeRoomInBooking(room.id, room.type))
+                            .map((room) => (
                             <div
                               key={room.id}
                               onClick={() => handleRoomSelection(room)}
@@ -377,7 +445,7 @@ export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToR
                               <div className="relative w-full h-48 rounded-lg overflow-hidden mb-4">
                                 {room.photo ? (
                                   <img
-                                    src={`${axios.defaults.baseURL}/image/${room.photo.replace('amenities/','')}`}
+                                    src={`${axios.defaults.baseURL}${room.photo}`}
                                     alt={room.name}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {

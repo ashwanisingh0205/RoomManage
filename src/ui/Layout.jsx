@@ -2,18 +2,13 @@ import React, { useState } from 'react';
 // import army from '../assets/login/kushal.PNG';
 import logo from '../assets/logo/logo1.png';
 import logo1 from '../assets/logo/logo2.png';
+import { getMenuItems, getCurrentUserRole } from '../lib/roleUtils';
 
 const Layout = ({ children, selectedSection, onSectionChange }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const menuItems = [
-    { text: 'Dashboard', icon: '📊', id: 'dashboard' },
-    { text: 'Rooms', icon: '🚪', id: 'rooms' },
-    { text: 'BookingStatus', icon: '📅', id: 'bookingstatus' },
-    { text: 'BookingRequests', icon: '📝', id: 'bookingrequests' },
-    { text: 'Inventory', icon: '📋', id: 'inventory' },
-    { text: 'Analytics', icon: '📈', id: 'analytics' },
-  ];
+  const menuItems = getMenuItems();
+  const userRole = getCurrentUserRole();
 
   const handleLogout = () => {
     sessionStorage.removeItem('token');
@@ -34,10 +29,10 @@ const Layout = ({ children, selectedSection, onSectionChange }) => {
       </div>
       {/* Sidebar Backdrop for mobile */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-20 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)}></div>
+        <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)}></div>
       )}
       {/* Sidebar */}
-      <div className={`fixed md:sticky md:top-0 z-30 top-0 left-0 h-full md:h-screen w-64 bg-gradient-to-br from-[#020B17] to-[#0a1a2e] shadow-2xl flex flex-col h-full overflow-y-auto transition-transform duration-300 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:flex md:relative`}>
+      <div className={`fixed md:sticky md:top-0 z-40 top-0 left-0 h-full md:h-screen w-64 bg-gradient-to-br from-[#020B17] to-[#0a1a2e] shadow-2xl flex flex-col h-full overflow-y-auto transition-transform duration-300 md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:flex md:relative`}>
         <div className="hidden md:flex items-center gap-3 p-6 border-b border-white/10">
           <img src={logo} alt="Kushal Logo" className="w-16 h-14 object-contain rounded-full shadow-lg border-white/20" />
           <div>
@@ -70,7 +65,7 @@ const Layout = ({ children, selectedSection, onSectionChange }) => {
             </div>
             <div>
               <p className="text-white font-semibold text-sm">STEAG</p>
-              <p className="text-white/60 text-xs">System Administrator</p>
+              <p className="text-white/60 text-xs">{userRole || 'User'}</p>
             </div>
           </div>
           <button

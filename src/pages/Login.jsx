@@ -30,6 +30,12 @@ export default function Login() {
         if (response.data.access_token) {
           sessionStorage.setItem('token', response.data.access_token);
           
+          // Store role information
+          if (response.data.role) {
+            sessionStorage.setItem('userRole', response.data.role);
+            console.log('User role:', response.data.role);
+          }
+          
           // No need to manually set Authorization header - axios interceptor handles this
           
           setuserId('');

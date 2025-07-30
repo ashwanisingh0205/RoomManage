@@ -12,13 +12,13 @@ function getWeekDates() {
   });
 }
 
-const rooms = Array.from({ length: 12 }, (_, i) => `Room ${i + 1}`);
-
 export default function BookingStatus() {
   const [selectedWeek, setSelectedWeek] = useState(0); // 0 = current week, 1 = next week, etc.
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingRooms, setLoadingRooms] = useState(true);
 
   // Generate week options (current week + next 11 weeks = 3 months)
   const weekOptions = Array.from({ length: 12 }, (_, i) => {
@@ -80,6 +80,39 @@ export default function BookingStatus() {
       setLoading(false);
     }
   };
+
+  // Fetch rooms on component mount
+  const fetchRooms = async () => {
+    try {
+      setLoadingRooms(true);
+      const response = await axios.get('/rooms/');
+      console.log('Rooms response:', response.data);
+      
+      // Handle different response structures
+      let roomsData = response.data;
+      if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        if (response.data.data) {
+          roomsData = response.data.data;
+        } else if (response.data.rooms) {
+          roomsData = response.data.rooms;
+        }
+      }
+      
+      // Ensure it's an array
+      roomsData = Array.isArray(roomsData) ? roomsData : [roomsData];
+      setRooms(roomsData);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      setRooms([]);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  // Fetch rooms on component mount
+  useEffect(() => {
+    fetchRooms();
+  }, []);
 
   // Fetch bookings when week changes
   useEffect(() => {
@@ -168,7 +201,7 @@ export default function BookingStatus() {
             <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center">
               <div className="text-3xl mb-2">📊</div>
               <div className="text-2xl font-bold text-blue-400">Total</div>
-              <div className="text-blue-300 text-sm">12 rooms in system</div>
+              <div className="text-blue-300 text-sm">{rooms.length} rooms in system</div>
             </div>
           </div>
 
@@ -244,49 +277,67 @@ export default function BookingStatus() {
                 </tr>
               </thead>
               <tbody>
-                {rooms.map((room, roomIdx) => (
-                  <tr 
-                    key={roomIdx} 
-                    className={`hover:bg-white/5 transition-all duration-300 cursor-pointer ${
-                      selectedRoom === roomIdx ? 'bg-white/10' : ''
-                    }`}
-                    onClick={() => setSelectedRoom(selectedRoom === roomIdx ? null : roomIdx)}
-                  >
-                    <td className="px-0 py-4 border-b border-white/10 ">
-                      <div className="flex items-center justify-center flex-row  gap-3 text-align-center">
-                        <div className=" text-white font-semibold  text-lg">{room}</div>
+                {loadingRooms ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+                        <span className="text-blue-300 text-lg">Loading rooms...</span>
                       </div>
                     </td>
-                    {weekDates.map((date, dayIdx) => {
-                      const roomId = roomIdx + 1;
-                      const isBooked = isRoomBooked(roomId, date);
-                      const bookingInfo = getBookingInfo(roomId, date);
-                      const status = isBooked ? 'booked' : 'available';
-                      
-                      return (
-                        <td key={dayIdx} className="px-2 py-2 border-b border-white/10  ">
-                          <div className={`relative group ${getStatusColor(status)}   rounded-xl p-3 min-h-[80px] flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-xl`}>
-                            <div className="text-2xl mb-1 ">{getStatusIcon(status)}</div>
-                            <div className="text-xs font-semibold text-center ">
-                              {status === 'booked' ? 'Booked' : 'Available'}
-                            </div>
-                            
-                            {/* Booking Details Tooltip */}
-                            {bookingInfo && (
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-50">
-                                <div className="bg-gray-900 text-white p-3 rounded-lg shadow-lg text-xs whitespace-nowrap">
-                                  <div className="font-semibold">{bookingInfo.name}</div>
-                                  <div className="text-gray-300">{bookingInfo.rank}</div>
-                                  <div className="text-gray-300">{bookingInfo.purpose_of_visit}</div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      );
-                    })}
                   </tr>
-                ))}
+                ) : rooms.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="text-gray-400 text-lg">No rooms found</div>
+                    </td>
+                  </tr>
+                ) : (
+                  rooms.map((room, roomIdx) => (
+                    <tr 
+                      key={room.id || roomIdx} 
+                      className={`hover:bg-white/5 transition-all duration-300 cursor-pointer ${
+                        selectedRoom === roomIdx ? 'bg-white/10' : ''
+                      }`}
+                      onClick={() => setSelectedRoom(selectedRoom === roomIdx ? null : roomIdx)}
+                    >
+                      <td className="px-0 py-4 border-b border-white/10 ">
+                        <div className="flex items-center justify-center flex-row gap-3 text-align-center">
+                          <div className="text-white font-semibold text-lg">{room.name}</div>
+                          <div className="text-gray-400 text-sm capitalize">({room.type})</div>
+                        </div>
+                      </td>
+                      {weekDates.map((date, dayIdx) => {
+                        const roomId = room.id;
+                        const isBooked = isRoomBooked(roomId, date);
+                        const bookingInfo = getBookingInfo(roomId, date);
+                        const status = isBooked ? 'booked' : 'available';
+                        
+                        return (
+                          <td key={dayIdx} className="px-2 py-2 border-b border-white/10">
+                            <div className={`relative group ${getStatusColor(status)} rounded-xl p-3 min-h-[80px] flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-xl`}>
+                              <div className="text-2xl mb-1">{getStatusIcon(status)}</div>
+                              <div className="text-xs font-semibold text-center">
+                                {status === 'booked' ? 'Booked' : 'Available'}
+                              </div>
+                              
+                              {/* Booking Details Tooltip */}
+                              {bookingInfo && (
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-50">
+                                  <div className="bg-gray-900 text-white p-3 rounded-lg shadow-lg text-xs whitespace-nowrap">
+                                    <div className="font-semibold">{bookingInfo.name}</div>
+                                    <div className="text-gray-300">{bookingInfo.rank}</div>
+                                    <div className="text-gray-300">{bookingInfo.purpose_of_visit}</div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import api from '../api/axios';
+import { 
+  canManageRooms, 
+  canBookRoom, 
+  canRequestRooms, 
+  getCurrentUserRole,
+  ROLES 
+} from '../lib/roleUtils';
 
 export default function Rooms() {
   const [rooms, setRooms] = useState([]);
@@ -13,7 +20,10 @@ export default function Rooms() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+  const [showEditRoomModal, setShowEditRoomModal] = useState(false);
   const [addingRoom, setAddingRoom] = useState(false);
+  const [editingRoom, setEditingRoom] = useState(false);
+  const [deletingRoom, setDeletingRoom] = useState(false);
   const [newRoom, setNewRoom] = useState({
     name: '',
     type: 'standard',
@@ -21,9 +31,17 @@ export default function Rooms() {
     charges_td: 0,
     charges_leave: 0,
     charges_civilian: 0,
-    amenities: [],
-    photo: null,
-    amenity_photos: []
+    photo: null
+  });
+  const [editingRoomData, setEditingRoomData] = useState({
+    id: null,
+    name: '',
+    type: 'standard',
+    buddy_number: '',
+    charges_td: 0,
+    charges_leave: 0,
+    charges_civilian: 0,
+    photo: null
   });
 
   useEffect(() => {
@@ -33,16 +51,50 @@ export default function Rooms() {
   // Scroll to 50% of viewport height when dialog opens
   useEffect(() => {
     if (openBookingsRoomId) {
-      window.scrollTo({ top: window.innerHeight * 0.5, behavior: 'smooth' });
+      // For mobile, scroll to top instead of center
+      if (window.innerWidth <= 768) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: window.innerHeight * 0.5, behavior: 'smooth' });
+      }
     }
   }, [openBookingsRoomId]);
 
   // Scroll to center when date picker opens
   useEffect(() => {
     if (showDatePicker) {
-      window.scrollTo({ top: window.innerHeight * 0.5, behavior: 'smooth' });
+      // For mobile, scroll to top instead of center
+      if (window.innerWidth <= 768) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: window.innerHeight * 0.5, behavior: 'smooth' });
+      }
     }
   }, [showDatePicker]);
+
+  // Scroll to center when add room modal opens
+  useEffect(() => {
+    if (showAddRoomModal) {
+      // For mobile, scroll to top instead of center
+      if (window.innerWidth <= 768) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: window.innerHeight * 0.5, behavior: 'smooth' });
+      }
+    }
+  }, [showAddRoomModal]);
+
+  // Scroll to center when edit room modal opens
+  useEffect(() => {
+    if (showEditRoomModal) {
+      // For mobile, scroll to top instead of center
+      if (window.innerWidth <= 768) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: window.innerHeight * 0.5, behavior: 'smooth' });
+      }
+    }
+  }, [showEditRoomModal]);
 
   const fetchRooms = async () => {
     try {
@@ -107,32 +159,41 @@ export default function Rooms() {
   const handleAddRoom = async () => {
     try {
       setAddingRoom(true);
+      
+      // Check if user is logged in
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        alert('Please log in first');
+        return;
+      }
+      
       const formData = new FormData();
       
       // Required fields
       formData.append('name', newRoom.name);
       formData.append('type', newRoom.type);
       
-      // Optional fields
+      // Optional fields - send empty values as specified
       formData.append('buddy_number', newRoom.buddy_number || '');
       formData.append('charges_td', newRoom.charges_td || 0);
       formData.append('charges_leave', newRoom.charges_leave || 0);
       formData.append('charges_civilian', newRoom.charges_civilian || 0);
-      formData.append('amenities', JSON.stringify(newRoom.amenities || []));
       
-      // Photo upload
+      // Photo upload - only if photo is selected
       if (newRoom.photo) {
         formData.append('photo', newRoom.photo);
       }
       
-      // Amenity photos
-      if (newRoom.amenity_photos && newRoom.amenity_photos.length > 0) {
-        newRoom.amenity_photos.forEach((photo, index) => {
-          formData.append(`amenity_photos`, photo);
-        });
+      // Debug: Check if token exists and log form data
+      console.log('Token exists:', !!token);
+      console.log('Token value:', token.substring(0, 20) + '...');
+      console.log('Form data entries:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
       }
       
-      const response = await axios.post('/rooms/', formData, {
+      // Use the api instance which has the authorization interceptor
+      const response = await api.post('/rooms/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -151,15 +212,19 @@ export default function Rooms() {
         charges_td: 0,
         charges_leave: 0,
         charges_civilian: 0,
-        amenities: [],
-        photo: null,
-        amenity_photos: []
+        photo: null
       });
       setShowAddRoomModal(false);
       
     } catch (error) {
       console.error('Error adding room:', error);
-      alert('Failed to add room. Please try again.');
+      // Show more detailed error information
+      if (error.response && error.response.data) {
+        console.error('Server error details:', error.response.data);
+        alert(`Failed to add room: ${JSON.stringify(error.response.data)}`);
+      } else {
+        alert('Failed to add room. Please try again.');
+      }
     } finally {
       setAddingRoom(false);
     }
@@ -174,9 +239,135 @@ export default function Rooms() {
       charges_td: 0,
       charges_leave: 0,
       charges_civilian: 0,
-      amenities: [],
-      photo: null,
-      amenity_photos: []
+      photo: null
+    });
+  };
+
+  const handleEditRoom = (room) => {
+    setEditingRoomData({
+      id: room.id,
+      name: room.name,
+      type: room.type,
+      buddy_number: room.buddy_number || '',
+      charges_td: room.charges_td || 0,
+      charges_leave: room.charges_leave || 0,
+      charges_civilian: room.charges_civilian || 0,
+      photo: null
+    });
+    setShowEditRoomModal(true);
+  };
+
+  const handleUpdateRoom = async () => {
+    try {
+      setEditingRoom(true);
+      
+      // Check if user is logged in
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        alert('Please log in first');
+        return;
+      }
+      
+      const formData = new FormData();
+      
+      // Required fields
+      formData.append('name', editingRoomData.name);
+      formData.append('type', editingRoomData.type);
+      
+      // Optional fields - send empty values as specified
+      formData.append('buddy_number', editingRoomData.buddy_number || '');
+      formData.append('charges_td', editingRoomData.charges_td || 0);
+      formData.append('charges_leave', editingRoomData.charges_leave || 0);
+      formData.append('charges_civilian', editingRoomData.charges_civilian || 0);
+      
+      // Photo upload - only if new photo is selected
+      if (editingRoomData.photo) {
+        formData.append('photo', editingRoomData.photo);
+      }
+      
+      const response = await api.put(`/rooms/${editingRoomData.id}/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('Room updated successfully:', response.data);
+      
+      // Refresh rooms list
+      await fetchRooms();
+      
+      // Reset form and close modal
+      setEditingRoomData({
+        id: null,
+        name: '',
+        type: 'standard',
+        buddy_number: '',
+        charges_td: 0,
+        charges_leave: 0,
+        charges_civilian: 0,
+        photo: null
+      });
+      setShowEditRoomModal(false);
+      
+    } catch (error) {
+      console.error('Error updating room:', error);
+      if (error.response && error.response.data) {
+        console.error('Server error details:', error.response.data);
+        alert(`Failed to update room: ${JSON.stringify(error.response.data)}`);
+      } else {
+        alert('Failed to update room. Please try again.');
+      }
+    } finally {
+      setEditingRoom(false);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId) => {
+    if (!window.confirm('Are you sure you want to delete this room? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingRoom(true);
+      
+      // Check if user is logged in
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        alert('Please log in first');
+        return;
+      }
+      
+      const response = await api.delete(`/rooms/${roomId}/`);
+      
+      console.log('Room deleted successfully:', response.data);
+      
+      // Refresh rooms list
+      await fetchRooms();
+      
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      if (error.response && error.response.data) {
+        console.error('Server error details:', error.response.data);
+        alert(`Failed to delete room: ${JSON.stringify(error.response.data)}`);
+      } else {
+        alert('Failed to delete room. Please try again.');
+      }
+    } finally {
+      setDeletingRoom(false);
+    }
+  };
+
+  const handleCloseEditRoomModal = () => {
+    setShowEditRoomModal(false);
+    setEditingRoomData({
+      id: null,
+      name: '',
+      type: 'standard',
+      buddy_number: '',
+      charges_td: 0,
+      charges_leave: 0,
+      charges_civilian: 0,
+      photo: null
     });
   };
 
@@ -227,82 +418,145 @@ export default function Rooms() {
 
   return (
     <div className="min-h-screen bg-slate-900 pb-24">
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-8 text-center">Room Management</h1>
-        <p className="text-slate-300 text-lg mb-10 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-8 text-center">Room Management</h1>
+        <p className="text-slate-300 text-sm sm:text-base lg:text-lg mb-6 sm:mb-10 text-center">
           Total Rooms: <span className="text-indigo-400 font-semibold">{rooms.length}</span>
         </p>
         
-        {/* Add Room Button */}
-        <div className="flex justify-center mb-8">
-          <button
-            onClick={() => setShowAddRoomModal(true)}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-3"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add New Room
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Add Room Button - Only for Chairman */}
+        {canManageRooms() && (
+          <div className="flex justify-center mb-6 sm:mb-8">
+            <button
+              onClick={() => setShowAddRoomModal(true)}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-4 sm:px-6 lg:px-8 py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base lg:text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 sm:gap-3"
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span className="hidden sm:inline">Add New Room</span>
+              <span className="sm:hidden">Add Room</span>
+            </button>
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {rooms.map((room, idx) => (
             <div
               key={room.id}
-              className={`bg-slate-800 text-white rounded-xl shadow-lg border border-gray-200 p-8 flex flex-col ${getRoomStatusColor(room, idx)}`}
+              className={`bg-slate-800 text-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 lg:p-8 flex flex-col ${getRoomStatusColor(room, idx)}`}
             >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                  {console.log(`${api.defaults.baseURL}/image/${room.photo ? room.photo.replace('amenities','') : ''}`)}
-                  <img 
-                    src={`${api.defaults.baseURL}/image/${room.photo ? room.photo.replace('amenities','') : ''}`}
-                    alt={`${room.name}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div className="hidden absolute inset-0 bg-gray-200 flex items-center justify-center">
-                    <span className="text-2xl">{getRoomTypeIcon(room.type)}</span>
+              {/* Room Image */}
+              <div className="relative w-full h-32 sm:h-40 rounded-lg overflow-hidden mb-4">
+                {console.log(`${api.defaults.baseURL}${room.photo}`)}
+                <img 
+                  src={`${api.defaults.baseURL}${room.photo}`}
+                  alt={`${room.name}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="hidden absolute inset-0 bg-gray-200 flex items-center justify-center">
+                  <span className="text-2xl sm:text-3xl">{getRoomTypeIcon(room.type)}</span>
+                </div>
+              </div>
+
+              {/* Room Information List */}
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg sm:text-xl font-bold text-white truncate">{room.name}</h2>
+                    <p className="text-slate-300 capitalize text-sm">{room.type} Room</p>
                   </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">{room.name}</h2>
-                  <p className="text-slate-300 capitalize">{room.type} Room</p>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-slate-300 text-sm">Amenities</p>
+                    <p className="text-white font-semibold text-sm">{room.amenities ? room.amenities.length : 0} available</p>
+                  </div>
                 </div>
               </div>
-              <div className="mb-4">
-                <h4 className="text-lg font-semibold text-slate-700 mb-2">Amenities</h4>
-                <div className="text-slate-700 font-medium">Amenities: {room.amenities ? room.amenities.length : 0}</div>
-              </div>
-              <button
-                className={`bg-gradient-to-r from-black via-gray-800 to-black hover:from-gray-900 hover:via-black hover:to-gray-900 text-white py-3 px-6 rounded-xl font-medium transition-colors duration-200${room.name.includes('9') ? ' mt-auto' : ' mt-4'}`}
-                onClick={() => handleViewBookings(room.id)}
-              >
-                View Bookings
-              </button>
+              
+                             {/* Action Buttons - List Format */}
+               <div className="space-y-2 mt-3 sm:mt-4">
+                 <button
+                   className="w-full bg-gradient-to-r from-black via-gray-800 to-black hover:from-gray-900 hover:via-black hover:to-gray-900 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-xl font-medium transition-colors duration-200 text-xs sm:text-sm flex items-center justify-center gap-2"
+                   onClick={() => handleViewBookings(room.id)}
+                 >
+                   <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                   </svg>
+                   View Bookings
+                 </button>
+                 
+                 {/* Edit Room Button - Only for Chairman */}
+                 {canManageRooms() && (
+                   <button
+                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-xl font-medium transition-colors duration-200 text-xs sm:text-sm flex items-center justify-center gap-2"
+                     onClick={() => handleEditRoom(room)}
+                     title="Edit Room"
+                   >
+                     <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                     </svg>
+                     Edit Room
+                   </button>
+                 )}
+                 
+                 {/* Delete Room Button - Only for Chairman */}
+                 {canManageRooms() && (
+                   <button
+                     className="w-full bg-red-600 hover:bg-red-700 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-xl font-medium transition-colors duration-200 text-xs sm:text-sm flex items-center justify-center gap-2"
+                     onClick={() => handleDeleteRoom(room.id)}
+                     disabled={deletingRoom}
+                     title="Delete Room"
+                   >
+                     {deletingRoom ? (
+                       <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent"></div>
+                     ) : (
+                       <>
+                         <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                         </svg>
+                         Delete Room
+                       </>
+                     )}
+                   </button>
+                 )}
+               </div>
             </div>
           ))}
         </div>
 
         {/* Date Picker Modal */}
         {showDatePicker && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 relative">
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">Select Date Range</h3>
-                <p className="text-gray-600">Choose the date range to view bookings</p>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-[60] p-2 sm:p-4 pt-16 sm:pt-4">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md p-4 sm:p-6 lg:p-8 relative mt-4 sm:mt-0">
+              <div className="text-center mb-4 sm:mb-6">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Select Date Range</h3>
+                <p className="text-gray-600 text-sm sm:text-base">Choose the date range to view bookings</p>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                     required
                   />
                 </div>
@@ -313,23 +567,23 @@ export default function Rooms() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                     required
                   />
                 </div>
               </div>
               
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
                 <button
                   onClick={handleCloseDatePicker}
-                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition-colors text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDateSubmit}
                   disabled={!startDate || !endDate}
-                  className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-indigo-600 text-white rounded-lg sm:rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
                 >
                   View Bookings
                 </button>
@@ -340,39 +594,39 @@ export default function Rooms() {
 
         {/* Modal for bookings */}
         {openRoom && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden relative">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-[60] p-2 sm:p-4 pt-16 sm:pt-4">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-2xl sm:max-w-3xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden relative mt-4 sm:mt-0">
               {/* Header */}
-              <div className={`${getRoomStatusColor(openRoom, openRoomIdx)} text-black p-6 rounded-t-3xl`}>
+              <div className={`${getRoomStatusColor(openRoom, openRoomIdx)} text-black p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl`}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-black/20 backdrop-blur-sm rounded-xl p-3">
-                      <span className="text-2xl">{getRoomTypeIcon(openRoom.type)}</span>
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="bg-black/20 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-3">
+                      <span className="text-lg sm:text-xl lg:text-2xl">{getRoomTypeIcon(openRoom.type)}</span>
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-bold">{openRoom.name}</h2>
-                      <p className="text-black/80 capitalize">{openRoom.type} Room</p>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{openRoom.name}</h2>
+                      <p className="text-black/80 capitalize text-sm sm:text-base">{openRoom.type} Room</p>
                     </div>
                   </div>
                   <button
-                    className="bg-black/20 hover:bg-black/30 backdrop-blur-sm rounded-full p-2 transition-all duration-200"
+                    className="bg-black/20 hover:bg-black/30 backdrop-blur-sm rounded-full p-1.5 sm:p-2 transition-all duration-200 flex-shrink-0"
                     onClick={() => setOpenBookingsRoomId(null)}
                     aria-label="Close"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
-                <div className="mt-4 flex items-center gap-6 text-sm">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="mt-3 sm:mt-4 flex items-center gap-3 sm:gap-6 text-xs sm:text-sm">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                     <span>Amenities: {openRoom.amenities ? openRoom.amenities.length : 0}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <span>Bookings</span>
@@ -381,7 +635,7 @@ export default function Rooms() {
               </div>
 
               {/* Content */}
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <div className="p-3 sm:p-4 lg:p-6 max-h-[70vh] sm:max-h-[60vh] overflow-y-auto">
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
                     <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,28 +788,28 @@ export default function Rooms() {
 
         {/* Add Room Modal */}
         {showAddRoomModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-[60] p-2 sm:p-4 pt-16 sm:pt-4">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg sm:max-w-xl lg:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto relative mt-4 sm:mt-0">
               {/* Header */}
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-3xl">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-3">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold">Add New Room</h2>
-                      <p className="text-indigo-100">Create a new room with all details</p>
+                      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">Add New Room</h2>
+                      <p className="text-indigo-100 text-sm sm:text-base">Create a new room with all details</p>
                     </div>
                   </div>
                   <button
-                    className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-2 transition-all duration-200"
+                    className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-1.5 sm:p-2 transition-all duration-200 flex-shrink-0"
                     onClick={handleCloseAddRoomModal}
                     aria-label="Close"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -563,11 +817,11 @@ export default function Rooms() {
               </div>
 
               {/* Content */}
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-3 sm:p-4 lg:p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   {/* Basic Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Basic Information</h3>
                     
                     {/* Room Name */}
                     <div>
@@ -576,7 +830,7 @@ export default function Rooms() {
                         type="text"
                         value={newRoom.name}
                         onChange={(e) => setNewRoom({...newRoom, name: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                         placeholder="Enter room name"
                         required
                       />
@@ -588,11 +842,10 @@ export default function Rooms() {
                       <select
                         value={newRoom.type}
                         onChange={(e) => setNewRoom({...newRoom, type: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                         required
                       >
                         <option value="standard">Standard</option>
-                        <option value="deluxe">Deluxe</option>
                         <option value="premium">Premium</option>
                       </select>
                     </div>
@@ -604,7 +857,7 @@ export default function Rooms() {
                         type="text"
                         value={newRoom.buddy_number}
                         onChange={(e) => setNewRoom({...newRoom, buddy_number: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                         placeholder="Enter buddy number"
                       />
                     </div>
@@ -616,14 +869,14 @@ export default function Rooms() {
                         type="file"
                         accept="image/*"
                         onChange={(e) => setNewRoom({...newRoom, photo: e.target.files[0]})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                       />
                     </div>
                   </div>
 
                   {/* Charges Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Charges</h3>
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Charges</h3>
                     
                     {/* TD Charges */}
                     <div>
@@ -633,7 +886,7 @@ export default function Rooms() {
                         min="0"
                         value={newRoom.charges_td}
                         onChange={(e) => setNewRoom({...newRoom, charges_td: parseFloat(e.target.value) || 0})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                         placeholder="0"
                       />
                     </div>
@@ -646,7 +899,7 @@ export default function Rooms() {
                         min="0"
                         value={newRoom.charges_leave}
                         onChange={(e) => setNewRoom({...newRoom, charges_leave: parseFloat(e.target.value) || 0})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                         placeholder="0"
                       />
                     </div>
@@ -659,7 +912,7 @@ export default function Rooms() {
                         min="0"
                         value={newRoom.charges_civilian}
                         onChange={(e) => setNewRoom({...newRoom, charges_civilian: parseFloat(e.target.value) || 0})}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base"
                         placeholder="0"
                       />
                     </div>
@@ -667,29 +920,200 @@ export default function Rooms() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 mt-8">
+                <div className="flex gap-2 sm:gap-3 mt-6 sm:mt-8">
                   <button
                     onClick={handleCloseAddRoomModal}
-                    className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                    className="flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition-colors text-sm sm:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAddRoom}
                     disabled={!newRoom.name || !newRoom.type || addingRoom}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg sm:rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     {addingRoom ? (
                       <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                        Adding Room...
+                        <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent"></div>
+                        <span className="hidden sm:inline">Adding Room...</span>
+                        <span className="sm:hidden">Adding...</span>
                       </>
                     ) : (
                       <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Add Room
+                        <span className="hidden sm:inline">Add Room</span>
+                        <span className="sm:hidden">Add</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Room Modal */}
+        {showEditRoomModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-[60] p-2 sm:p-4 pt-16 sm:pt-4">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg sm:max-w-xl lg:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto relative mt-4 sm:mt-0">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl p-2 sm:p-3">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">Edit Room</h2>
+                      <p className="text-blue-100 text-sm sm:text-base">Update room details</p>
+                    </div>
+                  </div>
+                  <button
+                    className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-1.5 sm:p-2 transition-all duration-200 flex-shrink-0"
+                    onClick={handleCloseEditRoomModal}
+                    aria-label="Close"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-3 sm:p-4 lg:p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  {/* Basic Information */}
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Basic Information</h3>
+                    
+                    {/* Room Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Room Name *</label>
+                      <input
+                        type="text"
+                        value={editingRoomData.name}
+                        onChange={(e) => setEditingRoomData({...editingRoomData, name: e.target.value})}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                        placeholder="Enter room name"
+                        required
+                      />
+                    </div>
+
+                    {/* Room Type */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Room Type *</label>
+                      <select
+                        value={editingRoomData.type}
+                        onChange={(e) => setEditingRoomData({...editingRoomData, type: e.target.value})}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                        required
+                      >
+                        <option value="standard">Standard</option>
+                        <option value="premium">Premium</option>
+                      </select>
+                    </div>
+
+                    {/* Buddy Number */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Buddy Number</label>
+                      <input
+                        type="text"
+                        value={editingRoomData.buddy_number}
+                        onChange={(e) => setEditingRoomData({...editingRoomData, buddy_number: e.target.value})}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                        placeholder="Enter buddy number"
+                      />
+                    </div>
+
+                    {/* Room Photo */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Room Photo (Optional)</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setEditingRoomData({...editingRoomData, photo: e.target.files[0]})}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Leave empty to keep current photo</p>
+                    </div>
+                  </div>
+
+                  {/* Charges Information */}
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Charges</h3>
+                    
+                    {/* TD Charges */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">TD Charges</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingRoomData.charges_td}
+                        onChange={(e) => setEditingRoomData({...editingRoomData, charges_td: parseFloat(e.target.value) || 0})}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    {/* Leave Charges */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Leave Charges</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingRoomData.charges_leave}
+                        onChange={(e) => setEditingRoomData({...editingRoomData, charges_leave: parseFloat(e.target.value) || 0})}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    {/* Civilian Charges */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Civilian Charges</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingRoomData.charges_civilian}
+                        onChange={(e) => setEditingRoomData({...editingRoomData, charges_civilian: parseFloat(e.target.value) || 0})}
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 sm:gap-3 mt-6 sm:mt-8">
+                  <button
+                    onClick={handleCloseEditRoomModal}
+                    className="flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition-colors text-sm sm:text-base"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdateRoom}
+                    disabled={!editingRoomData.name || !editingRoomData.type || editingRoom}
+                    className="flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg sm:rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                  >
+                    {editingRoom ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent"></div>
+                        <span className="hidden sm:inline">Updating Room...</span>
+                        <span className="sm:hidden">Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="hidden sm:inline">Update Room</span>
+                        <span className="sm:hidden">Update</span>
                       </>
                     )}
                   </button>
