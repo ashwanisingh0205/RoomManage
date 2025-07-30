@@ -12,6 +12,19 @@ export default function Rooms() {
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+  const [addingRoom, setAddingRoom] = useState(false);
+  const [newRoom, setNewRoom] = useState({
+    name: '',
+    type: 'standard',
+    buddy_number: '',
+    charges_td: 0,
+    charges_leave: 0,
+    charges_civilian: 0,
+    amenities: [],
+    photo: null,
+    amenity_photos: []
+  });
 
   useEffect(() => {
     fetchRooms();
@@ -91,16 +104,92 @@ export default function Rooms() {
     setEndDate('');
   };
 
+  const handleAddRoom = async () => {
+    try {
+      setAddingRoom(true);
+      const formData = new FormData();
+      
+      // Required fields
+      formData.append('name', newRoom.name);
+      formData.append('type', newRoom.type);
+      
+      // Optional fields
+      formData.append('buddy_number', newRoom.buddy_number || '');
+      formData.append('charges_td', newRoom.charges_td || 0);
+      formData.append('charges_leave', newRoom.charges_leave || 0);
+      formData.append('charges_civilian', newRoom.charges_civilian || 0);
+      formData.append('amenities', JSON.stringify(newRoom.amenities || []));
+      
+      // Photo upload
+      if (newRoom.photo) {
+        formData.append('photo', newRoom.photo);
+      }
+      
+      // Amenity photos
+      if (newRoom.amenity_photos && newRoom.amenity_photos.length > 0) {
+        newRoom.amenity_photos.forEach((photo, index) => {
+          formData.append(`amenity_photos`, photo);
+        });
+      }
+      
+      const response = await axios.post('/rooms/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('Room added successfully:', response.data);
+      
+      // Refresh rooms list
+      await fetchRooms();
+      
+      // Reset form and close modal
+      setNewRoom({
+        name: '',
+        type: 'standard',
+        buddy_number: '',
+        charges_td: 0,
+        charges_leave: 0,
+        charges_civilian: 0,
+        amenities: [],
+        photo: null,
+        amenity_photos: []
+      });
+      setShowAddRoomModal(false);
+      
+    } catch (error) {
+      console.error('Error adding room:', error);
+      alert('Failed to add room. Please try again.');
+    } finally {
+      setAddingRoom(false);
+    }
+  };
+
+  const handleCloseAddRoomModal = () => {
+    setShowAddRoomModal(false);
+    setNewRoom({
+      name: '',
+      type: 'standard',
+      buddy_number: '',
+      charges_td: 0,
+      charges_leave: 0,
+      charges_civilian: 0,
+      amenities: [],
+      photo: null,
+      amenity_photos: []
+    });
+  };
+
   const getRoomStatusColor = (room, idx) => {
     if (idx === 0 || idx === 1) {
       // First 2 rooms: reddish gradient
-      return 'bg-gradient-to-br from-rose-500 to-pink-300';
+      return 'bg-gradient-to-br from-red-500 to-pink-100';
     } else if (idx >= 2 && idx <= 6) {
       // Room 3 to 7: blue gradient
-      return 'bg-gradient-to-br from-blue-500 to-blue-300';
+      return 'bg-gradient-to-br from-blue-500 to-blue-100';
     } else if (idx >= 7 && idx <= 10) {
       // Room 8 to 11: light yellow gradient
-      return 'bg-gradient-to-br from-yellow-300 to-yellow-200';
+      return 'bg-gradient-to-br from-yellow-500 to-yellow-100';
     }
     // Default
     return 'bg-gradient-to-br from-slate-500 to-slate-700';
@@ -143,6 +232,19 @@ export default function Rooms() {
         <p className="text-slate-300 text-lg mb-10 text-center">
           Total Rooms: <span className="text-indigo-400 font-semibold">{rooms.length}</span>
         </p>
+        
+        {/* Add Room Button */}
+        <div className="flex justify-center mb-8">
+          <button
+            onClick={() => setShowAddRoomModal(true)}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-3"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add New Room
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {rooms.map((room, idx) => (
             <div
@@ -151,9 +253,9 @@ export default function Rooms() {
             >
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                  {console.log(`${api.defaults.baseURL}/image/${room.photo.replace('amenities','')}`)}
+                  {console.log(`${api.defaults.baseURL}/image/${room.photo ? room.photo.replace('amenities','') : ''}`)}
                   <img 
-                    src={`${api.defaults.baseURL}/image/${room.photo.replace('amenities','')}`}
+                    src={`${api.defaults.baseURL}/image/${room.photo ? room.photo.replace('amenities','') : ''}`}
                     alt={`${room.name}`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -425,6 +527,173 @@ export default function Rooms() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Room Modal */}
+        {showAddRoomModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-3xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">Add New Room</h2>
+                      <p className="text-indigo-100">Create a new room with all details</p>
+                    </div>
+                  </div>
+                  <button
+                    className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-2 transition-all duration-200"
+                    onClick={handleCloseAddRoomModal}
+                    aria-label="Close"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Basic Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
+                    
+                    {/* Room Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Room Name *</label>
+                      <input
+                        type="text"
+                        value={newRoom.name}
+                        onChange={(e) => setNewRoom({...newRoom, name: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter room name"
+                        required
+                      />
+                    </div>
+
+                    {/* Room Type */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Room Type *</label>
+                      <select
+                        value={newRoom.type}
+                        onChange={(e) => setNewRoom({...newRoom, type: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        required
+                      >
+                        <option value="standard">Standard</option>
+                        <option value="deluxe">Deluxe</option>
+                        <option value="premium">Premium</option>
+                      </select>
+                    </div>
+
+                    {/* Buddy Number */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Buddy Number</label>
+                      <input
+                        type="text"
+                        value={newRoom.buddy_number}
+                        onChange={(e) => setNewRoom({...newRoom, buddy_number: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter buddy number"
+                      />
+                    </div>
+
+                    {/* Room Photo */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Room Photo</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setNewRoom({...newRoom, photo: e.target.files[0]})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Charges Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Charges</h3>
+                    
+                    {/* TD Charges */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">TD Charges</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newRoom.charges_td}
+                        onChange={(e) => setNewRoom({...newRoom, charges_td: parseFloat(e.target.value) || 0})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    {/* Leave Charges */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Leave Charges</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newRoom.charges_leave}
+                        onChange={(e) => setNewRoom({...newRoom, charges_leave: parseFloat(e.target.value) || 0})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    {/* Civilian Charges */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Civilian Charges</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newRoom.charges_civilian}
+                        onChange={(e) => setNewRoom({...newRoom, charges_civilian: parseFloat(e.target.value) || 0})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-8">
+                  <button
+                    onClick={handleCloseAddRoomModal}
+                    className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddRoom}
+                    disabled={!newRoom.name || !newRoom.type || addingRoom}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  >
+                    {addingRoom ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                        Adding Room...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Room
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

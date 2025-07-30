@@ -10,6 +10,7 @@ const Layout = ({ children, selectedSection, onSectionChange }) => {
     { text: 'Dashboard', icon: '📊', id: 'dashboard' },
     { text: 'Rooms', icon: '🚪', id: 'rooms' },
     { text: 'BookingStatus', icon: '📅', id: 'bookingstatus' },
+    { text: 'BookingRequests', icon: '📝', id: 'bookingrequests' },
     { text: 'Inventory', icon: '📋', id: 'inventory' },
     { text: 'Analytics', icon: '📈', id: 'analytics' },
   ];

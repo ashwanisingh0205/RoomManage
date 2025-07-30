@@ -8,8 +8,10 @@ export default function Inventory() {
   const [roomInventory, setRoomInventory] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [image,setImage]=useState([])
   const [newInventoryItem, setNewInventoryItem] = useState({
     name: '',
+    quantity: 1,
     is_broken: false,
     image: null
   });
@@ -42,16 +44,16 @@ export default function Inventory() {
     
     try {
       // Get inventory for this specific room
-      const response = await axios.get(`/rooms/${room.id}/inventory/`);
-      console.log('Inventory API response:', response.data);
+      const response = await axios.get(`/rooms/${room.id}/amenities/`);
       setRoomInventory(response.data);
     } catch (error) {
-      console.error('Error fetching inventory:', error);
+      console.error('Error fetching amenities:', error);
       console.log('Using sample inventory from room amenities');
       // If API doesn't exist yet, create sample inventory from room amenities
       const sampleInventory = room.amenities ? room.amenities.map((amenity, index) => ({
         id: room.id * 100 + index + 1,
         name: amenity.name,
+        quantity: amenity.quantity || 1,
         is_broken: amenity.is_broken || false,
         photo: amenity.photo || null
       })) : [];
@@ -72,10 +74,30 @@ export default function Inventory() {
     }
   };
 
+    const getImageUrl = (item) => {
+      if (!item.photo && !item.image && !item.image_url) {
+        return null;
+      }
+      
+      const photoPath = item.photo || item.image || item.image_url;
+      
+      if (photoPath && photoPath.includes('amenities')) {
+        return `${axios.defaults.baseURL}/image/${photoPath.replace('amenities/', '')}`;
+      } else if (photoPath) {
+        return `${axios.defaults.baseURL}${photoPath}`;
+      }
+      
+      return null;
+    };
+
+
+
+
   const handleAddInventory = async () => {
     try {
       const formData = new FormData();
       formData.append('name', newInventoryItem.name);
+      formData.append('quantity', newInventoryItem.quantity);
       formData.append('is_broken', newInventoryItem.is_broken);
       if (newInventoryItem.image) {
         formData.append('photo', newInventoryItem.image);
@@ -91,6 +113,7 @@ export default function Inventory() {
       setSelectedRoom(null);
       setNewInventoryItem({
         name: '',
+        quantity: 1,
         is_broken: false,
         image: null
       });
@@ -109,13 +132,13 @@ export default function Inventory() {
   const getRoomStatusColor = (room, idx) => {
     if (idx === 0 || idx === 1) {
       // First 2 rooms: reddish gradient
-      return 'bg-gradient-to-br from-rose-500 to-pink-400';
+      return 'bg-gradient-to-br from-red-600 to-pink-100';
     } else if (idx >= 2 && idx <= 6) {
       // Room 3 to 7: blue gradient
-      return 'bg-gradient-to-br from-blue-500 to-blue-400';
+      return 'bg-gradient-to-br from-blue-500 to-blue-200';
     } else if (idx >= 7 && idx <= 10) {
       // Room 8 to 11: yellow gradient
-      return 'bg-gradient-to-br from-yellow-400 to-yellow-300';
+      return 'bg-gradient-to-br from-yellow-500 to-yellow-200';
     }
     // Default
     return 'bg-gradient-to-br from-slate-500 to-slate-700';
@@ -127,7 +150,7 @@ export default function Inventory() {
         {room.photo ? (
           <>
             <img 
-              src={`${axios.defaults.baseURL}/image/${room.photo.replace('amenities','')}`}
+              src={`${axios.defaults.baseURL}/image/${room.photo ? room.photo.replace('amenities','') : ''}`}
               alt={`${room.name}`}
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -304,6 +327,7 @@ export default function Inventory() {
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50">
                         <th className="text-left p-3 text-slate-700 font-semibold">Name</th>
+                        <th className="text-left p-3 text-slate-700 font-semibold">Quantity</th>
                         <th className="text-left p-3 text-slate-700 font-semibold">Status</th>
                         <th className="text-left p-3 text-slate-700 font-semibold">Image</th>
                       </tr>
@@ -313,48 +337,47 @@ export default function Inventory() {
                         <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-3 text-slate-800 font-medium">{item.name}</td>
                           <td className="p-3">
+                            <span className="text-slate-700 font-medium">
+                              {item.quantity || item.qty || item.amount || 1}
+                            </span>
+                          </td>
+                          <td className="p-3">
                             <span className={`text-xs px-3 py-1 rounded-full border ${item.is_broken ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
                               {item.is_broken ? 'Broken' : 'Working'}
                             </span>
                           </td>
-                                                    <td className="p-3">
+                          <td className="p-3">
                             <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                              {(item.image || item.photo || item.image_url) ? (
-                                <>
-                                  {console.log('Item:', item.name, 'Photo field:', item.photo, 'Image URL:', `${axios.defaults.baseURL}/image/${(item.image || item.photo || item.image_url || '').replace('amenities/','')}`)}
-                                  <img 
-                                    src={`${axios.defaults.baseURL}/image/${(item.image || item.photo || item.image_url || '').replace('amenities/','')}`}
-                                    alt={item.name}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      console.log('Image failed to load for item:', item.name, 'URL:', e.target.src);
-                                      // Only try alternative URL once to prevent infinite loop
-                                      if (e.target.src.includes('/image/') && !e.target.src.includes('/inventory/')) {
-                                        const originalSrc = e.target.src;
-                                        const newSrc = originalSrc.replace('/image/', '/inventory/image/');
-                                        console.log('Trying alternative URL:', newSrc);
-                                        e.target.src = newSrc;
-                                      } else {
+                              {(() => {
+                                const imageUrl = getImageUrl(item);
+                                return imageUrl ? (
+                                  <>
+                                    <img 
+                                      src={imageUrl}
+                                      alt={item.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        console.log('Image failed to load for item:', item.name, 'URL:', e.target.src);
                                         e.target.style.display = 'none';
                                         e.target.nextSibling.style.display = 'flex';
-                                      }
-                                    }}
-                                    onLoad={(e) => {
-                                      console.log('Image loaded successfully for item:', item.name, 'URL:', e.target.src);
-                                    }}
-                                  />
-                                  <div className="absolute inset-0 bg-slate-200 flex items-center justify-center text-slate-500 text-xs" style={{display: 'none'}}>
-                                    📦
+                                      }}
+                                      onLoad={(e) => {
+                                        console.log('Image loaded successfully for item:', item.name, 'URL:', e.target.src);
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 bg-slate-200 flex items-center justify-center text-slate-500 text-xs" style={{display: 'none'}}>
+                                      📦
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-slate-500 text-xs border border-slate-300">
+                                    <div className="text-center">
+                                      <div className="text-lg mb-1">📦</div>
+                                      <div className="text-xs">No Image</div>
+                                    </div>
                                   </div>
-                                </>
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-slate-500 text-xs border border-slate-300">
-                                  <div className="text-center">
-                                    <div className="text-lg mb-1">📦</div>
-                                    <div className="text-xs">No Image</div>
-                                  </div>
-                                </div>
-                              )}
+                                );
+                              })()}
                             </div>
                           </td>
                         </tr>
@@ -429,6 +452,19 @@ export default function Inventory() {
                     onChange={(e) => setNewInventoryItem({...newInventoryItem, name: e.target.value})}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Enter item name"
+                  />
+                </div>
+
+                {/* Quantity */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newInventoryItem.quantity}
+                    onChange={(e) => setNewInventoryItem({...newInventoryItem, quantity: parseInt(e.target.value) || 1})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter quantity"
                   />
                 </div>
 

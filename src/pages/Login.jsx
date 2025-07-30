@@ -113,14 +113,14 @@ export default function Login() {
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email
+                UserId
               </label>
               <input
                 type="text"
                 value={userId}
                 onChange={(e) => setuserId(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-white placeholder-gray-400"
-                placeholder="Email"
+                placeholder="UserId"
                 required
                 disabled={loading}
               />

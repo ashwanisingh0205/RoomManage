@@ -4,6 +4,7 @@ import BookingStatus from './BookingStatus'
 import Inventory from './Inventory'
 import Analytics from './Analytics'
 import Rooms from './Rooms'
+import BookingRequests from './BookingRequests'
 import Layout from '../ui/Layout'
 
 export default function Home() {
@@ -13,17 +14,25 @@ export default function Home() {
    const renderSection=()=>{
     switch(selectedSection){
       case 'dashboard':
-        return <Dashboard />
+        return <Dashboard 
+          onNavigateToRooms={() => setSelectedSection('rooms')} 
+          onNavigateToRequests={() => setSelectedSection('bookingrequests')} 
+        />
       case 'rooms':
         return <Rooms />
       case 'bookingstatus':
         return <BookingStatus />
+      case 'bookingrequests':
+        return <BookingRequests />
       case 'inventory':
         return <Inventory />
       case 'analytics':
         return <Analytics />
       default:
-        return <Dashboard />
+        return <Dashboard 
+          onNavigateToRooms={() => setSelectedSection('rooms')} 
+          onNavigateToRequests={() => setSelectedSection('bookingrequests')} 
+        />
     }
    }
 

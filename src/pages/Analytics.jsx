@@ -17,6 +17,21 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState('all');
 
+  // Helper function to generate date range for a month
+  const getDateRangeForMonth = (month) => {
+    if (month === 'all') return null;
+    
+    const currentYear = new Date().getFullYear();
+    const startDate = `${currentYear}-${month.padStart(2, '0')}-01`;
+    
+    // Get the last day of the selected month
+    const lastDay = new Date(currentYear, parseInt(month), 0).getDate();
+    const endDate = `${currentYear}-${month.padStart(2, '0')}-${lastDay}`;
+    
+    console.log(`Date range for month ${month}:`, { startDate, endDate });
+    return { startDate, endDate };
+  };
+
   // Generate month options
   const monthOptions = [
     { value: 'all', label: 'All Months' },
@@ -42,27 +57,107 @@ export default function Analytics() {
     try {
       setLoading(true);
       
-      // Fetch summary data
-      const summaryResponse = await axios.get('/analytics/summary');
-      setSummaryData(summaryResponse.data);
+      // Generate date range for selected month
+      console.log('Selected month:', selectedMonth);
+      let summaryUrl = '/analytics/summary';
+      const dateRange = getDateRangeForMonth(selectedMonth);
+      
+      if (dateRange) {
+        // Use specific month date range
+        summaryUrl = `/analytics/summary?start_date=${dateRange.startDate}&end_date=${dateRange.endDate}`;
+      } else {
+        // For "All Months", use current year date range
+        const currentYear = new Date().getFullYear();
+        const startDate = `${currentYear}-01-01`;
+        const endDate = `${currentYear}-12-31`;
+        summaryUrl = `/analytics/summary?start_date=${startDate}&end_date=${endDate}`;
+      }
+      
+      // Fetch summary data with date range
+      console.log('Summary URL:', summaryUrl);
+      try {
+        const summaryResponse = await axios.get(summaryUrl);
+        setSummaryData(summaryResponse.data);
+      } catch (summaryError) {
+        console.error('Summary API error:', summaryError);
+        console.error('Summary error details:', summaryError.response?.data);
+        setSummaryData({
+          total_rooms: 0,
+          avg_occupation: 0,
+          total_bookings: 0,
+          most_occupied_room: 'N/A'
+        });
+      }
       
       // Fetch room booking stats with month filter
       const roomStatsUrl = selectedMonth === 'all' 
         ? '/analytics/booking-stats'
         : `/analytics/booking-stats?month=${selectedMonth}`;
-      const roomStatsResponse = await axios.get(roomStatsUrl);
-      setRoomBookingStats(roomStatsResponse.data.room_booking_stats || []);
       
-      // Fetch reason of stay distribution
-      const reasonResponse = await axios.get('/analytics/reason-of-stay-distribution');
-      setReasonOfStayData(Array.isArray(reasonResponse.data) ? reasonResponse.data : [reasonResponse.data]);
+      try {
+        const roomStatsResponse = await axios.get(roomStatsUrl);
+        setRoomBookingStats(roomStatsResponse.data.room_booking_stats || []);
+      } catch (roomStatsError) {
+        console.error('Room stats API error:', roomStatsError);
+        setRoomBookingStats([]);
+      }
       
-      // Fetch rank type distribution
-      const rankResponse = await axios.get('/analytics/rank-type-distribution');
-      setRankTypeData(Array.isArray(rankResponse.data) ? rankResponse.data : [rankResponse.data]);
+      // Use room occupation data from summary API if available
+      if (summaryData.room_occupation && summaryData.room_occupation.length > 0) {
+        const formattedRoomStats = summaryData.room_occupation.map(room => ({
+          room: room.room,
+          occupation_percent: room.occupation,
+          total_bookings: 0 // We don't have this data in the current response
+        }));
+        setRoomBookingStats(formattedRoomStats);
+      }
+      
+      // Fetch reason of stay distribution with month filter
+      let reasonUrl = '/analytics/reason-of-stay-distribution';
+      const reasonDateRange = getDateRangeForMonth(selectedMonth);
+      
+      if (reasonDateRange) {
+        reasonUrl = `/analytics/reason-of-stay-distribution?start_date=${reasonDateRange.startDate}&end_date=${reasonDateRange.endDate}`;
+      } else {
+        // For "All Months", use current year date range
+        const currentYear = new Date().getFullYear();
+        const startDate = `${currentYear}-01-01`;
+        const endDate = `${currentYear}-12-31`;
+        reasonUrl = `/analytics/reason-of-stay-distribution?start_date=${startDate}&end_date=${endDate}`;
+      }
+      
+      try {
+        const reasonResponse = await axios.get(reasonUrl);
+        setReasonOfStayData(Array.isArray(reasonResponse.data) ? reasonResponse.data : [reasonResponse.data]);
+      } catch (reasonError) {
+        console.error('Reason of stay API error:', reasonError);
+        setReasonOfStayData([]);
+      }
+      
+      // Fetch rank type distribution with month filter
+      let rankUrl = '/analytics/rank-type-distribution';
+      const rankDateRange = getDateRangeForMonth(selectedMonth);
+      
+      if (rankDateRange) {
+        rankUrl = `/analytics/rank-type-distribution?start_date=${rankDateRange.startDate}&end_date=${rankDateRange.endDate}`;
+      } else {
+        // For "All Months", use current year date range
+        const currentYear = new Date().getFullYear();
+        const startDate = `${currentYear}-01-01`;
+        const endDate = `${currentYear}-12-31`;
+        rankUrl = `/analytics/rank-type-distribution?start_date=${startDate}&end_date=${endDate}`;
+      }
+      
+      try {
+        const rankResponse = await axios.get(rankUrl);
+        setRankTypeData(Array.isArray(rankResponse.data) ? rankResponse.data : [rankResponse.data]);
+      } catch (rankError) {
+        console.error('Rank type API error:', rankError);
+        setRankTypeData([]);
+      }
       
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
+      console.error('General analytics error:', error);
     } finally {
       setLoading(false);
     }
@@ -79,6 +174,8 @@ export default function Analytics() {
     );
   }
 
+
+
   return (
     <div className="h-full bg-[#020B17] overflow-y-auto">
       {/* Header */}
@@ -88,7 +185,14 @@ export default function Analytics() {
         </h1>
         <p className="text-gray-300 text-lg">
           Weekly room occupation and booking statistics
+          {selectedMonth !== 'all' && (
+            <span className="text-blue-400 ml-2">
+              • Filtered for {monthOptions.find(opt => opt.value === selectedMonth)?.label}
+            </span>
+          )}
         </p>
+        
+
       </div>
 
       {/* Statistics Cards */}

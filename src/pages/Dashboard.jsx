@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from '../api/axios';
 import bg from '../assets/bg.jpg';
 
-export default function Dashboard({ onMakeBooking, onCheckBooking }) {
+export default function Dashboard({ onMakeBooking, onCheckBooking, onNavigateToRooms, onNavigateToRequests }) {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedDates, setSelectedDates] = useState({
     checkIn: '',
@@ -14,10 +14,10 @@ export default function Dashboard({ onMakeBooking, onCheckBooking }) {
     name: '',
     phone: '',
     rank: '',
+    icNumber: '',
     numberOfGuests: '',
     typeOfHoliday: '',
-    mealPreference: '',
-    purposeOfVisit: ''
+    mealPreference: ''
   });
 
     const [availableRooms, setAvailableRooms] = useState([]);
@@ -75,22 +75,43 @@ export default function Dashboard({ onMakeBooking, onCheckBooking }) {
   };
 
   const handleBookingConfirmation = async () => {
-    // Here you would make an API call to create the booking
-    console.log('Booking confirmed:', {
-      dates: selectedDates,
-      room: selectedRoom,
-      guest: guestInfo
-    });
-    
-    // Reset form and close modal
-    setShowBookingModal(false);
-    setBookingStep(1);
-    setSelectedDates({ checkIn: '', checkOut: '' });
-    setSelectedRoom(null);
-    setGuestInfo({ name: '', phone: '', rank: '', numberOfGuests: '', typeOfHoliday: '', mealPreference: '', purposeOfVisit: '' });
-    
-    // Show success message
-    alert('Booking confirmed successfully!');
+    try {
+      // Prepare the booking data according to API requirements
+      const bookingData = {
+        name: guestInfo.name,
+        ic_number: guestInfo.icNumber,
+        rank: guestInfo.rank,
+        check_in_date: selectedDates.checkIn,
+        check_out_date: selectedDates.checkOut,
+        purpose_of_visit: guestInfo.typeOfHoliday,
+        room_id: selectedRoom.id,
+        no_of_guests: parseInt(guestInfo.numberOfGuests),
+        meal_preference: guestInfo.mealPreference,
+        mobile_number: guestInfo.phone,
+        payment_method: "Cash", // Default value
+        room_charges: 1000 // Default value - you can adjust this as needed
+      };
+
+      console.log('Sending booking data:', bookingData);
+
+      // Make API call to create booking
+      const response = await axios.post(`/bookings/room/${selectedRoom.id}/book`, bookingData);
+      
+      console.log('Booking API response:', response.data);
+      
+      // Reset form and close modal
+      setShowBookingModal(false);
+      setBookingStep(1);
+      setSelectedDates({ checkIn: '', checkOut: '' });
+      setSelectedRoom(null);
+      setGuestInfo({ name: '', phone: '', rank: '', icNumber: '', numberOfGuests: '', typeOfHoliday: '', mealPreference: '' });
+      
+      // Show success message
+      alert('Booking confirmed successfully!');
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Error creating booking. Please try again.');
+    }
   };
 
   const calculateNights = () => {
@@ -167,9 +188,38 @@ export default function Dashboard({ onMakeBooking, onCheckBooking }) {
             </div>
           </article>
 
+          {/* Check a Request of Booking */}
+          <article
+            onClick={onNavigateToRequests}
+            className="cursor-pointer rounded-xl border border-white/10 bg-white/25 backdrop-blur-md p-6 sm:p-8 shadow-md transition-all hover:shadow-orange-500 hover:scale-105 w-full sm:w-80 transform duration-300 ease-in-out brightness-100"
+          >
+            <div className="inline-block rounded-lg bg-orange-600 p-3 text-white shadow-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="size-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+
+            <h3 className="mt-4 text-xl font-semibold text-white">Check a Request of Booking</h3>
+
+            <p className="mt-2 text-sm text-gray-200 leading-relaxed">
+              Review and manage pending booking requests, approve or reject them as needed.
+            </p>
+
+            <div className="group mt-4 inline-flex items-center gap-1 text-sm font-medium text-orange-300">
+              Manage requests
+              <span aria-hidden="true" className="transition-all group-hover:ms-1">&rarr;</span>
+            </div>
+          </article>
+
           {/* Check a Booking */}
           <article
-            onClick={onCheckBooking}
+            onClick={onNavigateToRooms}
             className="cursor-pointer rounded-xl border border-white/10 bg-white/25 backdrop-blur-md p-6 sm:p-8 shadow-md transition-all hover:shadow-purple-500 hover:scale-105 w-full sm:w-80 transform duration-300 ease-in-out brightness-100"
           >
             <div className="inline-block rounded-lg bg-purple-600 p-3 text-white shadow-lg">
@@ -210,7 +260,7 @@ export default function Dashboard({ onMakeBooking, onCheckBooking }) {
                     setBookingStep(1);
                     setSelectedDates({ checkIn: '', checkOut: '' });
                     setSelectedRoom(null);
-                    setGuestInfo({ name: '', phone: '', rank: '', numberOfGuests: '', typeOfHoliday: '', mealPreference: '', purposeOfVisit: '' });
+                    setGuestInfo({ name: '', phone: '', rank: '', icNumber: '', numberOfGuests: '', typeOfHoliday: '', mealPreference: '' });
                   }}
                   className="text-gray-400 hover:text-white transition-colors"
                 >
@@ -446,12 +496,24 @@ export default function Dashboard({ onMakeBooking, onCheckBooking }) {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">Rank</label>
-                        <input
-                          type="text"
+                        <select
                           value={guestInfo.rank}
                           onChange={(e) => setGuestInfo({...guestInfo, rank: e.target.value})}
                           className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
-                          placeholder="Enter your rank"
+                        >
+                          <option value="">Select your rank</option>
+                          <option value="Officer">Officer</option>
+                          <option value="Civilian">Civilian</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">IC Number</label>
+                        <input
+                          type="text"
+                          value={guestInfo.icNumber}
+                          onChange={(e) => setGuestInfo({...guestInfo, icNumber: e.target.value})}
+                          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+                          placeholder="Enter your IC number"
                         />
                       </div>
                       <div>
@@ -467,14 +529,14 @@ export default function Dashboard({ onMakeBooking, onCheckBooking }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Reason of Stay</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Purpose of Visit</label>
                         <select
                           value={guestInfo.typeOfHoliday}
                           onChange={(e) => setGuestInfo({...guestInfo, typeOfHoliday: e.target.value})}
                           className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
                         >
-                          <option value="">Select reason of stay</option>
-                          <option value="TD">TD</option>
+                          <option value="">Select purpose of visit</option>
+                          <option value="Temporary Duty (TD)">Temporary Duty (TD)</option>
                           <option value="Leave">Leave</option>
                         </select>
                       </div>
@@ -491,16 +553,7 @@ export default function Dashboard({ onMakeBooking, onCheckBooking }) {
                           <option value="Egg Veg">Egg Veg</option>
                         </select>
                       </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Purpose of Visit</label>
-                        <textarea
-                          value={guestInfo.purposeOfVisit}
-                          onChange={(e) => setGuestInfo({...guestInfo, purposeOfVisit: e.target.value})}
-                          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
-                          placeholder="Please describe the purpose of your visit"
-                          rows="3"
-                        />
-                      </div>
+
                     </div>
 
                     <div className="flex justify-between">
@@ -512,7 +565,7 @@ export default function Dashboard({ onMakeBooking, onCheckBooking }) {
                       </button>
                       <button
                         onClick={handleBookingConfirmation}
-                        disabled={!guestInfo.name || !guestInfo.phone || !guestInfo.rank || !guestInfo.numberOfGuests || !guestInfo.typeOfHoliday || !guestInfo.mealPreference || !guestInfo.purposeOfVisit}
+                        disabled={!guestInfo.name || !guestInfo.phone || !guestInfo.rank || !guestInfo.icNumber || !guestInfo.numberOfGuests || !guestInfo.typeOfHoliday || !guestInfo.mealPreference}
                         className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors"
                       >
                         Confirm Booking
