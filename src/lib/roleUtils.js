@@ -49,19 +49,19 @@ export const ROLE_PERMISSIONS = {
   [ROLES.MESS_SECRETARY]: {
     canBookDirectly: false,
     canApproveRequests: false,
-    canManageRooms: false,
-    canManageInventory: false,
-    canViewAnalytics: false,
+    canManageRooms: true,
+    canManageInventory: true,
+    canViewAnalytics: true,
     canViewAllRooms: true,
-    restrictedRooms: ['premium'], // Cannot book premium rooms
+    // restrictedRooms: ['premium'], // Cannot book premium rooms
     canRequestRooms: true,
   },
   [ROLES.MESS_HAWALDAR]: {
     canBookDirectly: false,
     canApproveRequests: false,
-    canManageRooms: false,
-    canManageInventory: false,
-    canViewAnalytics: false,
+    canManageRooms: true,
+    canManageInventory: true,
+    canViewAnalytics: true,
     canViewAllRooms: true,
     restrictedRooms: ['premium'], // Cannot book premium rooms
     canRequestRooms: true,
