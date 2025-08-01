@@ -465,26 +465,26 @@ export default function Rooms() {
               {/* Room Information List */}
               <div className="space-y-3 mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg sm:text-xl font-bold text-white truncate">{room.name}</h2>
-                    <p className="text-slate-300 capitalize text-sm">{room.type} Room</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-black truncate">{room.name}</h2>
+                    <p className="text-black capitalize text-sm">{room.type} Room</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <p className="text-slate-300 text-sm">Amenities</p>
-                    <p className="text-white font-semibold text-sm">{room.amenities ? room.amenities.length : 0} available</p>
+                    <p className="text-black text-sm">Amenities</p>
+                    <p className="text-black font-semibold text-sm">{room.amenities ? room.amenities.length : 0} available</p>
                   </div>
                 </div>
               </div>

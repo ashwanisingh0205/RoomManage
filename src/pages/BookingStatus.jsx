@@ -20,8 +20,8 @@ export default function BookingStatus() {
   const [loading, setLoading] = useState(false);
   const [loadingRooms, setLoadingRooms] = useState(true);
 
-  // Generate week options (current week + next 11 weeks = 3 months)
-  const weekOptions = Array.from({ length: 12 }, (_, i) => {
+  // Generate week options (current week + next 51 weeks = full year)
+  const weekOptions = Array.from({ length: 52 }, (_, i) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() + (i * 7));
     const endDate = new Date(startDate);
@@ -35,13 +35,38 @@ export default function BookingStatus() {
     };
   });
 
+  // Find the week that contains August 2-8, 2025
+  const findWeekForBooking = () => {
+    const targetStartDate = new Date('2025-08-02');
+    const targetEndDate = new Date('2025-08-08');
+    
+    for (let i = 0; i < weekOptions.length; i++) {
+      const weekStart = weekOptions[i].startDate;
+      const weekEnd = weekOptions[i].endDate;
+      
+      // Check if the target dates fall within this week
+      if (targetStartDate >= weekStart && targetEndDate <= weekEnd) {
+        return i;
+      }
+    }
+    return null;
+  };
+
+  // Auto-navigate to the correct week when component mounts
+  useEffect(() => {
+    const correctWeek = findWeekForBooking();
+    if (correctWeek !== null) {
+      setSelectedWeek(correctWeek);
+      console.log(`Auto-navigated to week ${correctWeek} for August 2025 booking`);
+    }
+  }, []);
+
   // Get dates for selected week
   const getWeekDates = (weekOffset = 0) => {
-    const today = new Date();
-    const start = new Date(today.setDate(today.getDate() - today.getDay() + 1 + (weekOffset * 7))); // Monday
+    const startDate = weekOptions[weekOffset].startDate;
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
       return d;
     });
   };
@@ -118,20 +143,37 @@ export default function BookingStatus() {
   useEffect(() => {
     const startDate = formatDate(weekOptions[selectedWeek].startDate);
     const endDate = formatDate(weekOptions[selectedWeek].endDate);
+    console.log('Fetching bookings for week:', selectedWeek, 'Date range:', startDate, 'to', endDate);
     fetchBookings(startDate, endDate);
   }, [selectedWeek]);
 
   // Check if a room is booked on a specific date
   const isRoomBooked = (roomId, date) => {
     const dateStr = formatDate(date);
+    console.log('Checking if room', roomId, 'is booked on', dateStr, 'Available bookings:', bookings.length);
+    
     return bookings.some(booking => {
-      const checkIn = new Date(booking.check_in_date);
-      const checkOut = new Date(booking.check_out_date);
-      const currentDate = new Date(dateStr);
+      const checkIn = new Date(booking.check_in_date + 'T00:00:00');
+      const checkOut = new Date(booking.check_out_date + 'T23:59:59');
+      const currentDate = new Date(dateStr + 'T12:00:00');
       
-      return booking.room_id === roomId && 
-             currentDate >= checkIn && 
-             currentDate <= checkOut;
+      const isBooked = booking.room_id === roomId && 
+                      currentDate >= checkIn && 
+                      currentDate <= checkOut;
+      
+      // Debug logging for room 3
+      if (roomId === 3 && booking.room_id === 3) {
+        console.log('Booking check for Room 3:', {
+          dateStr,
+          checkIn: checkIn.toISOString(),
+          checkOut: checkOut.toISOString(),
+          currentDate: currentDate.toISOString(),
+          isBooked: isBooked,
+          booking: booking
+        });
+      }
+      
+      return isBooked;
     });
   };
 
@@ -139,9 +181,9 @@ export default function BookingStatus() {
   const getBookingInfo = (roomId, date) => {
     const dateStr = formatDate(date);
     return bookings.find(booking => {
-      const checkIn = new Date(booking.check_in_date);
-      const checkOut = new Date(booking.check_out_date);
-      const currentDate = new Date(dateStr);
+      const checkIn = new Date(booking.check_in_date + 'T00:00:00');
+      const checkOut = new Date(booking.check_out_date + 'T23:59:59');
+      const currentDate = new Date(dateStr + 'T12:00:00');
       
       return booking.room_id === roomId && 
              currentDate >= checkIn && 
@@ -171,6 +213,38 @@ export default function BookingStatus() {
     }
   };
 
+  // Calculate statistics for the current week
+  const calculateStats = () => {
+    let occupiedRooms = new Set();
+    let totalBookings = 0;
+
+    // Count occupied rooms and total bookings for the current week
+    bookings.forEach(booking => {
+      const checkIn = new Date(booking.check_in_date + 'T00:00:00');
+      const checkOut = new Date(booking.check_out_date + 'T23:59:59');
+      
+      // Check if this booking overlaps with the current week
+      const weekStart = weekOptions[selectedWeek].startDate;
+      const weekEnd = weekOptions[selectedWeek].endDate;
+      
+      if (checkIn <= weekEnd && checkOut >= weekStart) {
+        occupiedRooms.add(booking.room_id);
+        totalBookings++;
+      }
+    });
+
+    const availableRooms = rooms.length - occupiedRooms.size;
+    
+    return {
+      available: availableRooms,
+      occupied: occupiedRooms.size,
+      total: rooms.length,
+      totalBookings: totalBookings
+    };
+  };
+
+  const stats = calculateStats();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#020B17] via-[#0a1a2e] to-[#1a2e4a] p-4 sm:p-6 lg:p-8">
       {/* Header Section */}
@@ -184,48 +258,82 @@ export default function BookingStatus() {
           </p>
         </div>
 
-        {/* Stats Cards and Week Selector */}
-        <div className="flex flex-col lg:flex-row gap-6 mb-8">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 flex-1">
-            <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-sm border border-green-400/30 rounded-2xl p-6 text-center">
-              <div className="text-3xl mb-2">✅</div>
-              <div className="text-2xl font-bold text-green-400">Available</div>
-              <div className="text-green-300 text-sm">Rooms ready for booking</div>
-            </div>
-            <div className="bg-gradient-to-br from-red-500/20 to-red-600/20 backdrop-blur-sm border border-red-400/30 rounded-2xl p-6 text-center">
-              <div className="text-3xl mb-2">🏨</div>
-              <div className="text-2xl font-bold text-red-400">Occupied</div>
-              <div className="text-red-300 text-sm">Currently booked rooms</div>
-            </div>
-            <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-sm border border-blue-400/30 rounded-2xl p-6 text-center">
-              <div className="text-3xl mb-2">📊</div>
-              <div className="text-2xl font-bold text-blue-400">Total</div>
-              <div className="text-blue-300 text-sm">{rooms.length} rooms in system</div>
-            </div>
-          </div>
-
-          {/* Week Selector */}
-          <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-sm border border-purple-400/30 rounded-2xl p-6">
-            <div className="text-center mb-4">
-              <h3 className="text-purple-400 font-semibold text-lg mb-2">Select Week</h3>
-              <p className="text-purple-300 text-sm">
-                {weekOptions[selectedWeek].startDate.toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric' 
-                })} - {weekOptions[selectedWeek].endDate.toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </p>
-              {loading && (
-                <div className="mt-2 flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent"></div>
-                  <span className="text-purple-300 text-xs">Loading...</span>
+                 {/* Stats Cards and Week Selector */}
+         <div className="flex flex-col lg:flex-row gap-6 mb-8">
+                       {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
+              {/* Available Rooms Card */}
+              <div className="bg-gradient-to-br from-green-500/10 via-green-600/15 to-green-700/20 backdrop-blur-md border border-green-400/40 rounded-3xl p-6 text-center shadow-2xl hover:shadow-green-500/20 transition-all duration-300 hover:scale-105">
+                <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <span className="text-2xl">✅</span>
                 </div>
-              )}
+                <div className="text-4xl font-bold text-green-400 mb-2">{stats.available}</div>
+                <div className="text-green-300 font-semibold text-lg mb-1">Available</div>
+                <div className="text-green-400/70 text-sm">Rooms ready for booking</div>
+              </div>
+
+              {/* Occupied Rooms Card */}
+              <div className="bg-gradient-to-br from-red-500/10 via-red-600/15 to-red-700/20 backdrop-blur-md border border-red-400/40 rounded-3xl p-6 text-center shadow-2xl hover:shadow-red-500/20 transition-all duration-300 hover:scale-105">
+                <div className="bg-gradient-to-br from-red-400 to-red-500 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <span className="text-2xl">🏨</span>
+                </div>
+                <div className="text-4xl font-bold text-red-400 mb-2">{stats.occupied}</div>
+                <div className="text-red-300 font-semibold text-lg mb-1">Occupied</div>
+                <div className="text-red-400/70 text-sm">Currently booked rooms</div>
+              </div>
+
+              {/* Total Rooms Card */}
+              <div className="bg-gradient-to-br from-blue-500/10 via-blue-600/15 to-blue-700/20 backdrop-blur-md border border-blue-400/40 rounded-3xl p-6 text-center shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:scale-105">
+                <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <span className="text-2xl">📊</span>
+                </div>
+                <div className="text-4xl font-bold text-blue-400 mb-2">{stats.total}</div>
+                <div className="text-blue-300 font-semibold text-lg mb-1">Total</div>
+                <div className="text-blue-400/70 text-sm">Rooms in system</div>
+              </div>
             </div>
+
+                     {/* Week Selector */}
+           <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-sm border border-purple-400/30 rounded-2xl p-6">
+             <div className="text-center mb-4">
+               <h3 className="text-purple-400 font-semibold text-lg mb-2">Select Week</h3>
+               <p className="text-purple-300 text-sm">
+                 {weekOptions[selectedWeek].startDate.toLocaleDateString('en-US', { 
+                   month: 'short', 
+                   day: 'numeric' 
+                 })} - {weekOptions[selectedWeek].endDate.toLocaleDateString('en-US', { 
+                   month: 'short', 
+                   day: 'numeric',
+                   year: 'numeric'
+                 })}
+               </p>
+               {loading && (
+                 <div className="mt-2 flex items-center justify-center gap-2">
+                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent"></div>
+                   <span className="text-purple-300 text-xs">Loading...</span>
+                 </div>
+               )}
+                               {/* Quick Navigation Button */}
+                <button
+                  onClick={() => {
+                    const correctWeek = findWeekForBooking();
+                    if (correctWeek !== null) {
+                      setSelectedWeek(correctWeek);
+                      console.log(`Navigated to week ${correctWeek} for August 2025 booking`);
+                    }
+                  }}
+                  className="mt-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                >
+                  🗓️ Go to Aug 2025 Week
+                </button>
+                
+                {/* Debug Info */}
+                <div className="mt-2 text-xs text-purple-300">
+                  <div>Current Week: {selectedWeek}</div>
+                  <div>Week Dates: {weekDates[0]?.toLocaleDateString()} - {weekDates[6]?.toLocaleDateString()}</div>
+                  <div>Bookings: {bookings.length}</div>
+                </div>
+             </div>
             <select
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
@@ -323,11 +431,23 @@ export default function BookingStatus() {
                               
                               {/* Booking Details Tooltip */}
                               {bookingInfo && (
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-50">
-                                  <div className="bg-gray-900 text-white p-3 rounded-lg shadow-lg text-xs whitespace-nowrap">
-                                    <div className="font-semibold">{bookingInfo.name}</div>
-                                    <div className="text-gray-300">{bookingInfo.rank}</div>
-                                    <div className="text-gray-300">{bookingInfo.purpose_of_visit}</div>
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-[9999]">
+                                  <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-3 rounded-lg shadow-xl border border-gray-600 min-w-[180px]">
+                                    <ul className="space-y-1 text-xs">
+                                      <li className="flex items-center gap-2">
+                                        <span className="text-blue-400">👤</span>
+                                        <span className="text-white font-medium">{bookingInfo.name || 'N/A'}</span>
+                                        <span className="text-gray-400">({bookingInfo.rank || 'N/A'})</span>
+                                      </li>
+                                      <li className="flex items-center gap-2">
+                                        <span className="text-green-400">🆔</span>
+                                        <span className="text-white">{bookingInfo.ic_number || 'N/A'}</span>
+                                      </li>
+                                      <li className="flex items-center gap-2">
+                                        <span className="text-orange-400">🎯</span>
+                                        <span className="text-white">{bookingInfo.purpose_of_visit || 'N/A'}</span>
+                                      </li>
+                                    </ul>
                                   </div>
                                 </div>
                               )}

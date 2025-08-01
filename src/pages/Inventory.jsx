@@ -294,51 +294,68 @@ export default function Inventory() {
         </div>
 
         {/* Room Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {rooms.map((room, idx) => (
             <div
               key={room.id}
-              className="bg-white rounded-xl shadow-lg hover:shadow-xl cursor-pointer overflow-hidden border border-gray-200 transition-shadow duration-200 flex flex-col h-80"
+              className={`bg-slate-800 text-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6 lg:p-8 flex flex-col ${getRoomStatusColor(room, idx)}`}
             >
-              {/* Room Header */}
-              <div className={`${getRoomStatusColor(room, idx)} p-6 text-white flex-shrink-0`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold mb-1">{room.name}</h3>
-                    <p className="text-white/90 capitalize text-sm">{room.type} Room</p>
-                  </div>
-                  <div className="opacity-90">
-                    {getRoomTypeIcon(room)}
-                  </div>
+              {/* Room Image */}
+              <div className="relative w-full h-32 sm:h-40 rounded-lg overflow-hidden mb-4">
+                {room.photo ? (
+                  <img 
+                    src={`${axios.defaults.baseURL}${room.photo}`}
+                    alt={`${room.name}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div className={`${room.photo ? 'hidden' : 'flex'} absolute inset-0 bg-gray-200 items-center justify-center`}>
+                  <span className="text-2xl sm:text-3xl">{getRoomTypeIcon(room)}</span>
                 </div>
               </div>
 
-              {/* Room Content */}
-              <div className="p-6 flex-1 flex flex-col">
-                {/* Room Info */}
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Room Info</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
-                      <span className="text-sm font-medium text-slate-700">Type</span>
-                      <span className="text-xs text-slate-500 capitalize">{room.type}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
-                      <span className="text-sm font-medium text-slate-700">Amenities</span>
-                      <span className="text-xs text-slate-500">{room.amenities ? room.amenities.length : 0}</span>
-                    </div>
+              {/* Room Information List */}
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg sm:text-xl font-bold text-white truncate">{room.name}</h2>
+                    <p className="text-slate-300 capitalize text-sm">{room.type} Room</p>
                   </div>
                 </div>
 
-                {/* View Inventory Button */}
-                <div className="mt-auto pt-4 flex-shrink-0">
-                  <button 
-                    onClick={() => handleViewInventory(room)}
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-3 px-6 rounded-xl font-medium transition-colors duration-200"
-                  >
-                    View Inventory
-                  </button>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-slate-300 text-sm">Inventory Items</p>
+                    <p className="text-white font-semibold text-sm">{room.amenities ? room.amenities.length : 0} items</p>
+                  </div>
                 </div>
+              </div>
+              
+              {/* Action Buttons - List Format */}
+              <div className="space-y-2 mt-3 sm:mt-4">
+                <button
+                  className="w-full bg-gradient-to-r from-black via-gray-800 to-black hover:from-gray-900 hover:via-black hover:to-gray-900 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-xl font-medium transition-colors duration-200 text-xs sm:text-sm flex items-center justify-center gap-2"
+                  onClick={() => handleViewInventory(room)}
+                >
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  View Inventory
+                </button>
               </div>
             </div>
           ))}
