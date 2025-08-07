@@ -162,31 +162,37 @@ export const canViewBookingRequests = () => {
   return permissions.canApproveRequests || (permissions.canRequestRooms && getCurrentUserRole() === ROLES.PMC);
 };
 
-// Get menu items based on user role
-export const getMenuItems = () => {
-  const role = getCurrentUserRole();
-  const permissions = getCurrentUserPermissions();
-  
-  const allMenuItems = [
-    { text: 'Dashboard', icon: '📊', id: 'dashboard' },
-    { text: 'Rooms', icon: '🚪', id: 'rooms' },
-    { text: 'BookingStatus', icon: '📅', id: 'bookingstatus' },
-    { text: 'BookingRequests', icon: '📝', id: 'bookingrequests' },
-    { text: 'Inventory', icon: '📋', id: 'inventory' },
-    { text: 'Analytics', icon: '📈', id: 'analytics' },
-  ];
-  
-  // Filter menu items based on permissions
-  return allMenuItems.filter(item => {
-    switch (item.id) {
-      case 'inventory':
-        return permissions.canManageInventory;
-      case 'analytics':
-        return permissions.canViewAnalytics;
-      case 'bookingrequests':
-        return permissions.canApproveRequests || (permissions.canRequestRooms && role === ROLES.PMC);
-      default:
-        return true;
-    }
-  });
-}; 
+  // Get menu items based on user role
+  export const getMenuItems = () => {
+    const role = getCurrentUserRole();
+    const permissions = getCurrentUserPermissions();
+    
+    const allMenuItems = [
+      { text: 'Dashboard', icon: '📊', id: 'dashboard' },
+      { text: 'Rooms', icon: '🚪', id: 'rooms' },
+      { text: 'BookingStatus', icon: '📅', id: 'bookingstatus' },
+      { text: 'BookingRequests', icon: '📝', id: 'bookingrequests' },
+      { text: 'BookingSchedule', icon: '⏰', id: 'bookingschedule' },
+      { text: 'Inventory', icon: '📋', id: 'inventory' },
+      { text: 'Analytics', icon: '📈', id: 'analytics' },
+    ];
+    
+    // Filter menu items based on permissions
+    return allMenuItems.filter(item => {
+      switch (item.id) {
+        case 'inventory':
+          return permissions.canManageInventory;
+        case 'analytics':
+          return permissions.canViewAnalytics;
+        case 'bookingrequests':
+          return permissions.canApproveRequests || (permissions.canRequestRooms && role === ROLES.PMC);
+        case 'bookingschedule':
+          return permissions.canApproveRequests || 
+                 (permissions.canRequestRooms && role === ROLES.PMC) ||
+                 role === ROLES.MESS_SECRETARY ||
+                 role === ROLES.MESS_HAWALDAR;
+        default:
+          return true;
+      }
+    });
+  }; 

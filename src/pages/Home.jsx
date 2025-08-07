@@ -5,6 +5,7 @@ import Inventory from './Inventory'
 import Analytics from './Analytics'
 import Rooms from './Rooms'
 import BookingRequests from './BookingRequests'
+import BookingSchedule from './BookingSchedule'
 import Layout from '../ui/Layout'
 
 export default function Home() {
@@ -24,6 +25,8 @@ export default function Home() {
         return <BookingStatus />
       case 'bookingrequests':
         return <BookingRequests />
+      case 'bookingschedule':
+        return <BookingSchedule />
       case 'inventory':
         return <Inventory />
       case 'analytics':
