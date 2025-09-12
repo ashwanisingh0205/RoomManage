@@ -5,7 +5,7 @@ import api from '../api/axios';
 import pic from '../assets/logo/pic.jpg'
 
 export default function Login() {
-  const [userId, setuserId] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -14,14 +14,13 @@ export default function Login() {
 
  
   const handleLogin = async (e) => {
-    console.log('ywas')
     e.preventDefault();
     setError('');
     setLoading(true);
     
     try {
       const response = await api.post('auth/login', {
-        userId,
+        username,
         password,
       });
       console.log('response',response)
@@ -38,7 +37,7 @@ export default function Login() {
           
           // No need to manually set Authorization header - axios interceptor handles this
           
-          setuserId('');
+          setUsername('');
           setPassword('');
           
           navigate('/home');
@@ -119,14 +118,14 @@ export default function Login() {
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                UserId
+                username
               </label>
               <input
                 type="text"
-                value={userId}
-                onChange={(e) => setuserId(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-white placeholder-gray-400"
-                placeholder="UserId"
+                placeholder="username"
                 required
                 disabled={loading}
               />
