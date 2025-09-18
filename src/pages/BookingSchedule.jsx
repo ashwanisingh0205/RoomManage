@@ -723,10 +723,10 @@ export default function BookingSchedule() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#020B17] via-[#0a1a2e] to-[#1a2e4a] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#020B17] via-[#0a1a2e] to-[#1a2e4a] flex items-center justify-center px-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <div className="text-blue-300 text-lg font-medium">Loading bookings...</div>
+          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto mb-3 sm:mb-4"></div>
+          <div className="text-blue-300 text-sm sm:text-lg font-medium">Loading bookings...</div>
         </div>
       </div>
     );
@@ -745,31 +745,31 @@ export default function BookingSchedule() {
         aria-hidden="true"
       />
 
-      <div className="relative min-h-screen overflow-hidden px-4 py-10 sm:py-20 text-white w-full">
+      <div className="relative min-h-screen overflow-hidden px-2 xs:px-4 py-6 sm:py-10 lg:py-20 text-white w-full">
         {/* Gradient overlays */}
         <div className="pointer-events-none absolute inset-0 z-10">
-          <div className="absolute left-1/3 top-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-gradient-radial from-purple-700/30 via-transparent to-transparent rounded-full blur-3xl opacity-60"></div>
-          <div className="absolute right-1/4 bottom-1/4 w-[240px] sm:w-[400px] h-[240px] sm:h-[400px] bg-gradient-radial from-green-600/30 via-transparent to-transparent rounded-full blur-2xl opacity-50"></div>
+          <div className="absolute left-1/3 top-1/4 w-[200px] xs:w-[300px] sm:w-[500px] h-[200px] xs:h-[300px] sm:h-[500px] bg-gradient-radial from-purple-700/30 via-transparent to-transparent rounded-full blur-3xl opacity-60"></div>
+          <div className="absolute right-1/4 bottom-1/4 w-[160px] xs:w-[240px] sm:w-[400px] h-[160px] xs:h-[240px] sm:h-[400px] bg-gradient-radial from-green-600/30 via-transparent to-transparent rounded-full blur-2xl opacity-50"></div>
         </div>
 
         {/* Header Section */}
-        <div className="relative z-20 text-center mb-10">
-          <h1 className="text-3xl sm:text-5xl font-bold text-white drop-shadow-md">
+        <div className="relative z-20 text-center mb-6 sm:mb-8 lg:mb-10 px-4">
+          <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-md leading-tight">
             Booking Schedule Management
           </h1>
-          <p className="mt-4 text-gray-300 text-sm sm:text-lg max-w-2xl mx-auto">
+          <p className="mt-3 sm:mt-4 text-gray-300 text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl max-w-xs xs:max-w-sm sm:max-w-2xl mx-auto leading-relaxed">
             Manage check-ins and check-outs
           </p>
           {userRole && (
-            <div className="mt-2 text-blue-300 text-sm">
+            <div className="mt-2 sm:mt-3 text-blue-300 text-xs xs:text-sm sm:text-base">
               Role: {userRole}
             </div>
           )}
         </div>
 
         {/* Tab Navigation */}
-        <div className="relative z-20 flex justify-center mb-8">
-          <div className="flex space-x-1 bg-gray-800/50 backdrop-blur-md rounded-lg p-1">
+        <div className="relative z-20 flex justify-center mb-6 sm:mb-8 px-4">
+          <div className="flex flex-wrap justify-center gap-1 sm:gap-2 bg-gray-800/50 backdrop-blur-md rounded-lg p-1 sm:p-2 w-full max-w-4xl">
             {[
               { key: 'confirmed', label: 'Confirmed', count: filterBookingsByRole(bookings.confirmed).length },
               { key: 'checkIn', label: 'Check-In', count: filterBookingsByRole(bookings.checkIn).length },
@@ -782,35 +782,37 @@ export default function BookingSchedule() {
                   setActiveTab(tab.key);
                   setCurrentPage(1); // Reset to first page when switching tabs
                 }}
-                className={`px-6 py-3 rounded-md font-medium transition-all duration-200 ${
+                className={`px-2 xs:px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-200 text-xs xs:text-sm sm:text-base flex-1 sm:flex-none min-w-0 ${
                   activeTab === tab.key
                     ? 'bg-blue-600 text-white shadow-lg'
                     : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
                 }`}
               >
-                {tab.label} ({tab.count})
+                <span className="block sm:hidden">{tab.label.split('-')[0]}</span>
+                <span className="hidden sm:block">{tab.label}</span>
+                <span className="ml-1 text-xs opacity-75">({tab.count})</span>
               </button>
             ))}
           </div>
         </div>
 
                   {/* Content */}
-          <div className="relative z-20 max-w-6xl mx-auto">
+          <div className="relative z-20 max-w-7xl mx-auto px-2 xs:px-4">
 
 
 
           {/* Search Section */}
-          <div className="mb-6 bg-gray-800/50 backdrop-blur-md rounded-lg p-4 border border-gray-700">
-            <div className="flex flex-col sm:flex-row gap-4">
+          <div className="mb-4 sm:mb-6 bg-gray-800/50 backdrop-blur-md rounded-lg p-3 sm:p-4 lg:p-6 border border-gray-700">
+            <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
               {/* Search Field Dropdown */}
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1 sm:mb-2">
                   Search Field:
                 </label>
                 <select
                   value={searchField}
                   onChange={(e) => setSearchField(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white text-sm sm:text-base"
                 >
                   <option value="name">Guest Name</option>
                   <option value="ic_number">IC Number</option>
@@ -822,8 +824,8 @@ export default function BookingSchedule() {
               </div>
               
               {/* Search Input */}
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1 sm:mb-2">
                   Search Term:
                 </label>
                 <input
@@ -831,19 +833,19 @@ export default function BookingSchedule() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Enter search term..."
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white text-sm sm:text-base"
                 />
               </div>
               
               {/* Clear Search Button */}
-              <div className="flex items-end">
+              <div className="flex items-end lg:flex-shrink-0">
                 <button
                   onClick={() => {
                     setSearchTerm('');
                     setSearchField('name');
                     setCurrentPage(1);
                   }}
-                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all duration-200 hover:transform hover:scale-105"
+                  className="w-full lg:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all duration-200 hover:transform hover:scale-105 text-sm sm:text-base font-medium"
                 >
                   Clear
                 </button>
@@ -853,14 +855,14 @@ export default function BookingSchedule() {
 
           {/* Note Input - Only for users who can approve */}
           {processingBooking && canApprove && (
-            <div className="mb-6 bg-gray-800/50 backdrop-blur-md rounded-lg p-4 border border-gray-700">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="mb-4 sm:mb-6 bg-gray-800/50 backdrop-blur-md rounded-lg p-3 sm:p-4 lg:p-6 border border-gray-700">
+              <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1 sm:mb-2">
                 Note (optional):
               </label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white text-sm sm:text-base resize-none"
                 placeholder="Add a note for this action..."
                 rows="3"
               />
@@ -868,74 +870,74 @@ export default function BookingSchedule() {
           )}
 
           {/* Bookings List */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {filterBookingsByRole(bookings[activeTab]).length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center py-8 sm:py-12 px-4">
+                <div className="text-gray-400 mb-3 sm:mb-4">
+                  <svg className="w-12 h-12 sm:w-16 sm:h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">No {activeTab} bookings</h3>
-                <p className="text-gray-400">There are no {activeTab} bookings to display.</p>
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-1 sm:mb-2">No {activeTab} bookings</h3>
+                <p className="text-gray-400 text-sm sm:text-base">There are no {activeTab} bookings to display.</p>
               </div>
             ) : (
               filterBookingsByRole(bookings[activeTab]).map((booking) => (
                 <div
                   key={booking.id}
-                  className="bg-gray-800/50 backdrop-blur-md rounded-xl border border-gray-700 p-6 hover:bg-gray-700/50 transition-all duration-300"
+                  className="bg-gray-800/50 backdrop-blur-md rounded-xl border border-gray-700 p-3 sm:p-4 lg:p-6 hover:bg-gray-700/50 transition-all duration-300"
                 >
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-3 sm:gap-4">
                     {/* Booking Details */}
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-white mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 gap-2 sm:gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">
                             Booking #{booking.id}
                           </h3>
-                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                             <div>
-                               <p className="text-gray-400">Guest Name:</p>
-                               <p className="text-white font-medium">{booking.name || booking.guest_name || 'N/A'}</p>
+                          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 gap-2 sm:gap-3 lg:gap-4 text-xs sm:text-sm">
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Guest Name:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm truncate">{booking.name || booking.guest_name || 'N/A'}</p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">IC Number:</p>
-                               <p className="text-white font-medium">{booking.ic_number || 'N/A'}</p>
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">IC Number:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm truncate">{booking.ic_number || 'N/A'}</p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">Rank:</p>
-                               <p className="text-white font-medium">{booking.rank || booking.rank_type || 'N/A'}</p>
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Rank:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm truncate">{booking.rank || booking.rank_type || 'N/A'}</p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">Room:</p>
-                               <p className="text-white font-medium">
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Room:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm truncate">
                                  {booking.room?.room_number || booking.room_id || 'N/A'}
                                  {booking.room?.room_type && ` (${booking.room.room_type})`}
                                </p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">Check-in Date:</p>
-                               <p className="text-white font-medium">{formatDate(booking.check_in_date)}</p>
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Check-in Date:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm">{formatDate(booking.check_in_date)}</p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">Check-out Date:</p>
-                               <p className="text-white font-medium">{formatDate(booking.check_out_date)}</p>
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Check-out Date:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm">{formatDate(booking.check_out_date)}</p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">Purpose:</p>
-                               <p className="text-white font-medium">{booking.purpose_of_visit || booking.reason_of_stay || 'N/A'}</p>
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Purpose:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm truncate">{booking.purpose_of_visit || booking.reason_of_stay || 'N/A'}</p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">Guests:</p>
-                               <p className="text-white font-medium">{booking.no_of_guests || 'N/A'}</p>
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Guests:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm">{booking.no_of_guests || 'N/A'}</p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">Meal Preference:</p>
-                               <p className="text-white font-medium">{booking.meal_preference || 'N/A'}</p>
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Meal Preference:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm truncate">{booking.meal_preference || 'N/A'}</p>
                              </div>
-                             <div>
-                               <p className="text-gray-400">Mobile:</p>
-                               <p className="text-white font-medium">{booking.mobile_number || 'N/A'}</p>
+                             <div className="min-w-0">
+                               <p className="text-gray-400 text-xs sm:text-sm">Mobile:</p>
+                               <p className="text-white font-medium text-xs sm:text-sm">{booking.mobile_number || 'N/A'}</p>
                              </div>
                              {/* <div>
                                <p className="text-gray-400">Payment:</p>
@@ -946,53 +948,53 @@ export default function BookingSchedule() {
                                <p className="text-white font-medium">₹{booking.room_charges || 'N/A'}</p>
                              </div> */}
                              {booking.actual_check_in_time && (
-                               <div>
-                                 <p className="text-gray-400">Actual Check-in:</p>
-                                 <p className="text-green-400 font-medium">{formatDate(booking.actual_check_in_time)}</p>
+                               <div className="min-w-0">
+                                 <p className="text-gray-400 text-xs sm:text-sm">Actual Check-in:</p>
+                                 <p className="text-green-400 font-medium text-xs sm:text-sm">{formatDate(booking.actual_check_in_time)}</p>
                                </div>
                              )}
                              {booking.actual_check_out_time && (
-                               <div>
-                                 <p className="text-gray-400">Actual Check-out:</p>
-                                 <p className="text-red-400 font-medium">{formatDate(booking.actual_check_out_time)}</p>
+                               <div className="min-w-0">
+                                 <p className="text-gray-400 text-xs sm:text-sm">Actual Check-out:</p>
+                                 <p className="text-red-400 font-medium text-xs sm:text-sm">{formatDate(booking.actual_check_out_time)}</p>
                                </div>
                              )}
                              {booking.approved_by && (
-                               <div>
-                                 <p className="text-gray-400">Approved By:</p>
-                                 <p className="text-green-400 font-medium">{booking.approved_by}</p>
+                               <div className="min-w-0">
+                                 <p className="text-gray-400 text-xs sm:text-sm">Approved By:</p>
+                                 <p className="text-green-400 font-medium text-xs sm:text-sm truncate">{booking.approved_by}</p>
                                </div>
                              )}
                              {booking.cancelled_at && (
-                               <div>
-                                 <p className="text-gray-400">Cancelled At:</p>
-                                 <p className="text-red-400 font-medium">{formatDate(booking.cancelled_at)}</p>
+                               <div className="min-w-0">
+                                 <p className="text-gray-400 text-xs sm:text-sm">Cancelled At:</p>
+                                 <p className="text-red-400 font-medium text-xs sm:text-sm">{formatDate(booking.cancelled_at)}</p>
                                </div>
                              )}
                              {booking.cancel_reason && (
-                               <div>
-                                 <p className="text-gray-400">Cancel Reason:</p>
-                                 <p className="text-red-400 font-medium">{booking.cancel_reason}</p>
+                               <div className="min-w-0">
+                                 <p className="text-gray-400 text-xs sm:text-sm">Cancel Reason:</p>
+                                 <p className="text-red-400 font-medium text-xs sm:text-sm truncate">{booking.cancel_reason}</p>
                                </div>
                              )}
                            </div>
                         </div>
-                                                 <div className="flex items-center gap-2">
-                           <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
-                             {getStatusIcon(booking.status)} {booking.status || 'Pending'}
-                           </span>
-                           {booking.approved_by && (
-                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 border border-green-500/30 text-green-400">
-                               ✅ Approved
-                             </span>
-                           )}
-                         </div>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-shrink-0">
+                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
+                            {getStatusIcon(booking.status)} {booking.status || 'Pending'}
+                          </span>
+                          {booking.approved_by && (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 border border-green-500/30 text-green-400">
+                              ✅ Approved
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       {/* Additional Details */}
                       {booking.note && (
-                        <div className="mt-3 p-3 bg-gray-700/50 rounded-lg">
-                          <p className="text-gray-300 text-sm">
+                        <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-gray-700/50 rounded-lg">
+                          <p className="text-gray-300 text-xs sm:text-sm">
                             <span className="font-medium">Note:</span> {booking.note}
                           </p>
                         </div>
@@ -1000,21 +1002,22 @@ export default function BookingSchedule() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-2 lg:flex-col">
+                    <div className="flex flex-col sm:flex-row xl:flex-col gap-2 sm:gap-3 xl:gap-2 w-full xl:w-auto">
                       {activeTab === 'confirmed' && (
                         <button
                           onClick={() => handleProcessBooking(booking.id, 'checkIn')}
                           disabled={processingBooking === booking.id}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          className={`w-full sm:w-auto xl:w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
                             processingBooking === booking.id
                               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                               : 'bg-green-600 hover:bg-green-700 text-white hover:transform hover:scale-105'
                           }`}
                         >
                           {processingBooking === booking.id ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              Processing...
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
+                              <span className="hidden xs:inline">Processing...</span>
+                              <span className="xs:hidden">...</span>
                             </div>
                           ) : (
                             'Check-In'
@@ -1026,16 +1029,17 @@ export default function BookingSchedule() {
                         <button
                           onClick={() => handleProcessBooking(booking.id, 'checkOut')}
                           disabled={processingBooking === booking.id}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          className={`w-full sm:w-auto xl:w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
                             processingBooking === booking.id
                               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                               : 'bg-blue-600 hover:bg-blue-700 text-white hover:transform hover:scale-105'
                           }`}
                         >
                           {processingBooking === booking.id ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              Processing...
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
+                              <span className="hidden xs:inline">Processing...</span>
+                              <span className="xs:hidden">...</span>
                             </div>
                           ) : (
                             'Check-Out'
@@ -1051,7 +1055,7 @@ export default function BookingSchedule() {
                             openRescheduleModal(booking);
                           }}
                           disabled={processingBooking === booking.id}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          className={`w-full sm:w-auto xl:w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
                             processingBooking === booking.id
                               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                               : 'bg-purple-600 hover:bg-purple-700 text-white hover:transform hover:scale-105'
@@ -1066,7 +1070,7 @@ export default function BookingSchedule() {
                         <button
                           onClick={() => handleCancelBooking(booking.id)}
                           disabled={processingBooking === booking.id}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          className={`w-full sm:w-auto xl:w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
                             processingBooking === booking.id
                               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                               : 'bg-red-600 hover:bg-red-700 text-white hover:transform hover:scale-105'
@@ -1081,13 +1085,14 @@ export default function BookingSchedule() {
                         <button
                           onClick={() => handleMarkNoShow(booking.id)}
                           disabled={processingBooking === booking.id}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          className={`w-full sm:w-auto xl:w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
                             processingBooking === booking.id
                               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                               : 'bg-orange-600 hover:bg-orange-700 text-white hover:transform hover:scale-105'
                           }`}
                         >
-                          Mark No-Show
+                          <span className="hidden xs:inline">Mark No-Show</span>
+                          <span className="xs:hidden">No-Show</span>
                         </button>
                       )}
                     </div>
@@ -1098,21 +1103,22 @@ export default function BookingSchedule() {
           </div>
           
           {/* Pagination Controls */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 px-4">
             {/* Page Info */}
-            <div className="flex items-center gap-2">
-              <span className="text-gray-300 text-sm">
-                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalBookings)} of {totalBookings} bookings
+            <div className="flex items-center gap-2 order-2 sm:order-1">
+              <span className="text-gray-300 text-xs sm:text-sm text-center sm:text-left">
+                <span className="hidden xs:inline">Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalBookings)} of {totalBookings} bookings</span>
+                <span className="xs:hidden">{currentPage}/{totalPages}</span>
               </span>
             </div>
             
             {/* Numbered Pagination */}
-            <div className="flex items-center gap-1">
-              {/* First Page */}
+            <div className="flex items-center gap-1 order-1 sm:order-2">
+              {/* First Page - Hidden on mobile */}
               <button
                 onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
-                className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={`hidden sm:block px-2 sm:px-3 py-2 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${
                   currentPage === 1
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white hover:transform hover:scale-105'
@@ -1125,21 +1131,22 @@ export default function BookingSchedule() {
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={`px-2 sm:px-3 py-2 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${
                   currentPage === 1
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white hover:transform hover:scale-105'
                 }`}
               >
-                ‹
+                <span className="hidden xs:inline">‹</span>
+                <span className="xs:hidden">‹‹</span>
               </button>
               
-              {/* Page Numbers */}
+              {/* Page Numbers - Responsive display */}
               {generatePageNumbers().map((pageNum) => (
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  className={`px-2 sm:px-3 py-2 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${
                     currentPage === pageNum
                       ? 'bg-blue-600 text-white shadow-lg'
                       : 'bg-gray-700 hover:bg-gray-600 text-white hover:transform hover:scale-105'
@@ -1153,20 +1160,21 @@ export default function BookingSchedule() {
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={`px-2 sm:px-3 py-2 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${
                   currentPage === totalPages || totalPages === 0
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white hover:transform hover:scale-105'
                 }`}
               >
-                ›
+                <span className="hidden xs:inline">›</span>
+                <span className="xs:hidden">››</span>
               </button>
               
-              {/* Last Page */}
+              {/* Last Page - Hidden on mobile */}
               <button
                 onClick={() => setCurrentPage(totalPages)}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={`hidden sm:block px-2 sm:px-3 py-2 rounded-lg font-medium transition-all duration-200 text-xs sm:text-sm ${
                   currentPage === totalPages || totalPages === 0
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white hover:transform hover:scale-105'
@@ -1181,13 +1189,13 @@ export default function BookingSchedule() {
 
       {/* Reschedule Modal */}
       {showRescheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md p-4">
           <div 
             data-modal="reschedule"
-            className="bg-gray-800 border border-gray-700 rounded-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
+            className="bg-gray-800 border border-gray-700 rounded-xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md lg:max-w-lg mx-auto max-h-[95vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Reschedule Booking</h3>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-white">Reschedule Booking</h3>
               <button
                 onClick={() => {
                   setShowRescheduleModal(false);
@@ -1196,29 +1204,29 @@ export default function BookingSchedule() {
                   setNewCheckOutDate('');
                   setRescheduleReason('');
                 }}
-                className="text-gray-400 hover:text-white text-2xl transition-colors duration-200"
+                className="text-gray-400 hover:text-white text-xl sm:text-2xl transition-colors duration-200 flex-shrink-0 ml-2"
               >
                 ×
               </button>
             </div>
 
             {selectedBooking ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Booking Info */}
-                <div className="bg-gray-700/50 rounded-lg p-4">
-                  <h4 className="text-white font-medium mb-2">Current Booking Details</h4>
-                  <div className="text-sm text-gray-300 space-y-1">
-                    <p><span className="font-medium">Guest:</span> {selectedBooking.name || selectedBooking.guest_name}</p>
-                    <p><span className="font-medium">Room:</span> {selectedBooking.room?.room_number || selectedBooking.room_id}</p>
-                    <p><span className="font-medium">Current Check-in:</span> {formatDate(selectedBooking.check_in_date)}</p>
-                    <p><span className="font-medium">Current Check-out:</span> {formatDate(selectedBooking.check_out_date)}</p>
+                <div className="bg-gray-700/50 rounded-lg p-3 sm:p-4">
+                  <h4 className="text-white font-medium mb-2 text-sm sm:text-base">Current Booking Details</h4>
+                  <div className="text-xs sm:text-sm text-gray-300 space-y-1">
+                    <p className="break-words"><span className="font-medium">Guest:</span> {selectedBooking.name || selectedBooking.guest_name}</p>
+                    <p className="break-words"><span className="font-medium">Room:</span> {selectedBooking.room?.room_number || selectedBooking.room_id}</p>
+                    <p className="break-words"><span className="font-medium">Current Check-in:</span> {formatDate(selectedBooking.check_in_date)}</p>
+                    <p className="break-words"><span className="font-medium">Current Check-out:</span> {formatDate(selectedBooking.check_out_date)}</p>
                   </div>
                 </div>
 
                 {/* New Dates */}
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1 sm:mb-2">
                       New Check-in Date *
                     </label>
                     <input
@@ -1226,12 +1234,12 @@ export default function BookingSchedule() {
                       value={newCheckInDate}
                       onChange={(e) => setNewCheckInDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white text-sm sm:text-base"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-300 mb-1 sm:mb-2">
                       New Check-out Date *
                     </label>
                     <input
@@ -1239,7 +1247,7 @@ export default function BookingSchedule() {
                       value={newCheckOutDate}
                       onChange={(e) => setNewCheckOutDate(e.target.value)}
                       min={newCheckInDate || new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white text-sm sm:text-base"
                     />
                   </div>
 
@@ -1247,7 +1255,7 @@ export default function BookingSchedule() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
                   <button
                     onClick={() => {
                       setShowRescheduleModal(false);
@@ -1256,7 +1264,7 @@ export default function BookingSchedule() {
                       setNewCheckOutDate('');
                       setRescheduleReason('');
                     }}
-                    className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all duration-200"
+                    className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-all duration-200 text-sm sm:text-base font-medium"
                   >
                     Cancel
                   </button>
@@ -1266,7 +1274,7 @@ export default function BookingSchedule() {
                       handleRescheduleBooking();
                     }}
                     disabled={processingBooking === selectedBooking.id || !newCheckInDate || !newCheckOutDate}
-                    className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                    className={`w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
                       processingBooking === selectedBooking.id || !newCheckInDate || !newCheckOutDate
                         ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                         : 'bg-purple-600 hover:bg-purple-700 text-white hover:transform hover:scale-105'
@@ -1274,19 +1282,23 @@ export default function BookingSchedule() {
                   >
                     {processingBooking === selectedBooking.id ? (
                       <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Rescheduling...
+                        <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
+                        <span className="hidden xs:inline">Rescheduling...</span>
+                        <span className="xs:hidden">...</span>
                       </div>
                     ) : (
-                      'Reschedule Booking'
+                      <>
+                        <span className="hidden xs:inline">Reschedule Booking</span>
+                        <span className="xs:hidden">Reschedule</span>
+                      </>
                     )}
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="text-gray-400 text-lg mb-2">Loading booking details...</div>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+              <div className="text-center py-6 sm:py-8">
+                <div className="text-gray-400 text-sm sm:text-lg mb-2">Loading booking details...</div>
+                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-purple-500 mx-auto"></div>
               </div>
             )}
           </div>
